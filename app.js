@@ -3,7 +3,8 @@ const cors = require('cors');
 const morgan = require('morgan');
 const helmet = require('helmet');
 
-
+const globalErrorHandler = require('./controllers/globalErrorHandler');
+const userRouter = require('./routes/userRouter');
 
 
 const app = express();
@@ -21,8 +22,12 @@ app.use(express.json({ limit: '10kb'}));
 if(process.env.NODE_ENV === 'development')
     app.use(morgan('dev'));
 
+// Api routes
+app.use('/api/v1/users', userRouter);
 
 
+// global error handling middleware
+app.use(globalErrorHandler);
 
 app.all('*', (req, res) => {
     res.status(404).json({

@@ -1,13 +1,17 @@
 const dotenv = require('dotenv');
+const Sequelize = require('sequelize');
 
 const app = require('./app');
-
 dotenv.config({ path: './config.env' });
 
 
+const db = require('./config/database');
 
+db.authenticate()
+    .then(() => console.log('Database connected...'))
+    .catch(err => console.log('Error: ' + err.message))
 
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 2000;
 const server = app.listen(port, () => console.log(`Server is running on port: ${port}...`));
 
 process.on('unhandledRejection', err => {

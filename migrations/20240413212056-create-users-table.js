@@ -26,9 +26,20 @@ module.exports = {
       },
       password: {
         type: Sequelize.STRING,
+        validate: {
+          len: [4, 32, 'Password must be between 4 and 32 characters']
+        }
+      },
+      password_confirm: {
+        type: Sequelize.STRING,
         allowNull: false,
         validate: {
-          len: [4, 32]
+          len: [4, 32, 'Password must be between 4 and 32 characters'],
+          isSameAsPassword (value) {
+            if (value !== this.password) {
+              throw new Error('Password and confirm password must be the same');
+            }
+          }
         }
       },
       role: {
@@ -53,6 +64,23 @@ module.exports = {
       language_preference: {
         type: Sequelize.STRING,
         defaultValue: 'en'
+      },
+      password_changed_at: {
+        type: Sequelize.DATE
+      },
+      secret_token: {
+        type: Sequelize.STRING
+      },
+      secret_token_expires_at: {
+        type: Sequelize.DATE
+      },
+      img: {
+        type: Sequelize.STRING,
+        defaultValue: 'default.jpg'
+      },
+      active: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: false
       }
     });
   },

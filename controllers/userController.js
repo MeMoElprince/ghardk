@@ -1,6 +1,8 @@
 const User = require('../models/userModel');
 const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
+const Email = require('../utils/emailHandler');
+const color = require('../utils/colors');
 
 const filterObj = (obj, ...allowedFields) => {
     const newObj = {};
@@ -12,15 +14,16 @@ const filterObj = (obj, ...allowedFields) => {
 
 exports.createUser = catchAsync(async (req, res, next) => {
 
-    const data = filterObj(req.body, 'first_name', 'last_name', 'email', 'password', 'role', 'dob', 'gender');
+    const data = filterObj(req.body, 'first_name', 'last_name', 'email', 'password', 'password_confirm', 'role', 'dob', 'gender');
     if(data.role === 'admin') {
         return next(new AppError('You cannot create an admin user', 401));
     }
     
     // hash the password 
     // ,,,,,,,,,,,,,,,,,
-
+    console.log(color.FgCyan, 'Creating user...', color.Reset);
     const user = await User.create(data);
+    console.log(color.FgGreen, 'User created successfully.', color.Reset);
 
     // Create Token
     // ,,,,,,,,,,,,
@@ -69,7 +72,6 @@ exports.getUser = catchAsync(async (req, res, next) => {
         }
     });
 });
-
 
 // update user by id
 exports.updateUser = catchAsync(async (req, res, next) => {

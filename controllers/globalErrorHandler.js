@@ -6,7 +6,8 @@ const sendErrorDev = (err, res) => {
         status: err.status,
         statusCode: err.statusCode,
         message: err.message,
-        stack: err.stack
+        stack: err.stack,
+        error: err,
     })
 }
 

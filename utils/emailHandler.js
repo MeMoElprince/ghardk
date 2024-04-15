@@ -5,7 +5,7 @@ const htmlToText = require('html-to-text');
 module.exports = class Email {
     constructor(user, url) {
         this.to = user.email;
-        this.firstName = user.firstName;
+        this.firstName = user.first_name;
         this.url = url;
         this.from = 'Ghrdk <Gharadk Team>';
     }
@@ -46,7 +46,7 @@ module.exports = class Email {
             to: this.to,
             subject,
             html,
-            text: htmlToText.fromString(html)
+            text: htmlToText.convert(html)
         };
 
         // 3) Create a transport and send email

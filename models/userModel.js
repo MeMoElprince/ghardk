@@ -1,5 +1,7 @@
 const db = require("../config/database");
 const sequelize = require("sequelize");
+const bcrypt = require("bcryptjs");
+const crypto = require('crypto');
 
 const User = db.define("users", {
   first_name: {
@@ -21,7 +23,19 @@ const User = db.define("users", {
     type: sequelize.STRING,
     allowNull: false,
     validate: {
-      len: [4, 32],
+      len: [4, 32, "Password must be between 4 and 32 characters"],
+    },
+  },
+  password_confirm: {
+    type: sequelize.STRING,
+    allowNull: false,
+    validate: {
+      len: [4, 32, "Password must be between 4 and 32 characters"],
+      isSameAsPassword(value) {
+        if (value !== this.password) {
+          throw new Error("Password and confirm password must be the same");
+        }
+      },
     },
   },
   role: {
@@ -47,7 +61,43 @@ const User = db.define("users", {
     type: sequelize.STRING,
     defaultValue: "en",
   },
+  password_changed_at: {
+    type: sequelize.DATE,
+  },
+  secret_token: {
+    type: sequelize.STRING,
+  },
+  secret_token_expires_at: {
+    type: sequelize.DATE,
+  },
+  img: {
+    type: sequelize.STRING,
+    defaultValue: 'default.jpg'
+  },
+  active: {
+    type: sequelize.BOOLEAN,
+    defaultValue: false
+  }
 });
 
+// before data being saved encrypt the password
+User.beforeCreate(async (user) => {
+  // hash the password if it has been modified (or is new)
+  if (!user.changed("password")) {
+    return;
+  }
+  // generate a salt
+  const salt = await bcrypt.genSalt(10);
+  user.password = await bcrypt.hash(user.password, salt);
+  user.password_confirm = '';
+});
+
+// create a secret token in a method
+User.prototype.createSecretToken = function () {
+  const secret_token = crypto.randomBytes(3).toString("hex");
+  this.secret_token = crypto.createHash("sha256").update(secret_token).digest("hex");
+  this.secret_token_expires_at = Date.now() + 10 * 60 * 1000;
+  return secret_token;
+};
 
 module.exports = User;

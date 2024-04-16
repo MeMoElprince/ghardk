@@ -92,6 +92,13 @@ User.beforeCreate(async (user) => {
   user.password_confirm = '';
 });
 
+// User.beforeCreate(async (user) => {
+//   // password Changed At 
+//   if(!user.changed("password") || user.isNew("password"))
+//     return;
+//   user.password_changed_at = Date.now() - 1000;
+// });
+
 // create a secret token in a method
 User.prototype.createSecretToken = function () {
   const secret_token = crypto.randomBytes(3).toString("hex");

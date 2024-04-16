@@ -1,4 +1,7 @@
 const User = require('../models/userModel');
+const Vendor = require('../models/vendorModel');
+const Customer = require('../models/customerModel');
+const Cart = require('../models/cartModel');
 const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
 const Email = require('../utils/emailHandler');
@@ -14,8 +17,8 @@ const filterObj = (obj, ...allowedFields) => {
 
 exports.signUp = catchAsync(async (req, res, next) => {
     const data = filterObj(req.body, 'first_name', 'last_name', 'email', 'password', 'password_confirm', 'role', 'dob', 'gender');
-    if(data.role === 'admin') {
-        return next(new AppError('You cannot create an admin user', 401));
+    if(data.role === 'admin' || !data.role) {
+        return next(new AppError('Invalid role value', 401));
     }
     
     
@@ -28,16 +31,41 @@ exports.signUp = catchAsync(async (req, res, next) => {
         const newData = filterObj(req.body, 'national_id');
         newData.user_id = user.id;
         // create vendor
-        // ,,,,,,,,,,,,
+        console.log(color.FgCyan, 'Creating Vendor...', color.Reset);
+        let vendor;
+        try{
+            vendor = await Vendor.create(newData);
+            console.log(color.FgGreen, 'Vendor created successfully.', color.Reset);
+        } catch (err)
+        {
+            await user.destroy();
+            return next(new AppError('Vendor failed to be created', 400));
+        }
     }
 
     if(data.role === 'customer') {
-        // create cart to get cart id
-        // ,,,,,,,,,,,,,,,,,,,,,,,,,, 
-
         const newData = {user_id: user.id};
         // create the customer
-        // ,,,,,,,,,,,,,,,,,,,
+        console.log(color.FgCyan, 'Creating Customer...', color.Reset);
+        let customer;
+        try {
+            customer = await Customer.create(newData);
+            console.log(color.FgGreen, 'Customer created successfully.', color.Reset);
+        } catch (err) {
+            await user.destroy();
+            return next(new AppError('Customer failed to be created', 400));
+        }
+
+        // create cart
+        console.log(color.FgCyan, 'Creating Cart...', color.Reset);
+        try {
+            const cart = await Cart.create({customer_id: customer.id});
+            console.log(color.FgGreen, 'Cart created successfully.', color.Reset);
+        } catch (err) {
+            await customer.destroy();
+            await user.destroy();
+            return next(new AppError('Cart failed to be created', 400));
+        }
     }
     // Create Token
     // ,,,,,,,,,,,,

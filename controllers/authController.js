@@ -6,6 +6,8 @@ const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
 const Email = require('../utils/emailHandler');
 const color = require('../utils/colors');
+const tokenFactory = require('../utils/tokenFactory');
+
 
 const filterObj = (obj, ...allowedFields) => {
     const newObj = {};
@@ -68,7 +70,7 @@ exports.signUp = catchAsync(async (req, res, next) => {
         }
     }
     // Create Token
-    // ,,,,,,,,,,,,
+    const token = tokenFactory.sign({id: user.id});
 
     // create a secret token 
     const secret_token = user.createSecretToken();
@@ -80,10 +82,55 @@ exports.signUp = catchAsync(async (req, res, next) => {
     await new Email(user, secret_token).verifyAccount();
     console.log(color.FgMagenta, 'Verification email sent successfully.', color.Reset);
 
+    const result = {...user.toJSON(), token};
     res.status(201).json({
         status: 'success',
         data: {
-            user
+            user: result
         }
     })
+});
+
+exports.login = catchAsync(async (req, res, next) => {
+    const data = filterObj(req.body, 'email', 'password');
+    if(!data.password || !data.email)
+        return next(new AppError('You must provide an email and password together!', 400));
+    const user = await User.findOne({
+        where: {
+            email: data.email
+        }
+    });
+    if(!user || !await user.validatePassword(data.password))
+        return next(new AppError('Email or password isn\'t correct...', 401)); 
+    const token = tokenFactory.sign({id: user.id});
+    res.status(200).json({
+        status: "success",
+        data: {
+            token
+        }
+    });
+});
+
+exports.protect = catchAsync(async (req, res, next) => {
+    // getting token and check if it exists
+    let token;
+    if(req.headers.authorization && req.headers.authorization.startsWith('Bearer'))
+        token = req.headers.authorization.split(' ')[1];
+    if(!token)
+        return next(new AppError('No token found!!', 401));
+    // verification token
+    const decoded = await tokenFactory.verify(token);
+    // check if user still exists
+    const currentUser = await User.findByPk(decoded.id);
+    if(!currentUser)
+        return next(new AppError('User doesn\'t exist!!', 401));
+    // check if user changed password after the token was issued
+    // if(currentUser.changed_password_at(decoded.iat))
+    //     return next(new AppError('قام المستخدم مؤخرًا بتغيير كلمة المرور! الرجاد الدخول على الحساب من جديد.', 401));
+    // grant access to protected route
+    if(!currentUser.active)
+        return next(new AppError('You havn\'t verified your account yet!!', 401));
+    
+    req.user = currentUser;
+    next();
 });

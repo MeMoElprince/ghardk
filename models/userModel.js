@@ -107,4 +107,8 @@ User.prototype.createSecretToken = function () {
   return secret_token;
 };
 
+User.prototype.validatePassword = function (candidatePassword) {
+  const password = this.password;
+  return bcrypt.compare(candidatePassword, password);
+}
 module.exports = User;

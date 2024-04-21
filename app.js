@@ -5,6 +5,8 @@ const helmet = require('helmet');
 
 const globalErrorHandler = require('./controllers/globalErrorHandler');
 const userRouter = require('./routes/userRouter');
+const categoryRouter = require('./routes/categoryRouter');
+const productRouter = require('./routes/productRouter');
 
 
 const app = express();
@@ -24,6 +26,8 @@ if(process.env.NODE_ENV === 'development')
 
 // Api routes
 app.use('/api/v1/users', userRouter);
+app.use('/api/v1/categories', categoryRouter);
+app.use('/api/v1/products', productRouter);
 
 
 // global error handling middleware

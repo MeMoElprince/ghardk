@@ -8,12 +8,12 @@ router.route('/signup').post(authController.signUp);
 router.route('/login').post(authController.login);
 
 router.route('/')
-        .post(authController.protect, userController.createUser)
-        .get(authController.protect, userController.getAllUsers);
+        .post(authController.protect, authController.restrictTo('admin'), userController.createUser)
+        .get(authController.protect, authController.restrictTo('admin'), userController.getAllUsers);
 
 router.route('/:id')
         .get(authController.protect, userController.getUser)
-        .patch(authController.protect, userController.updateUser)
-        .delete(authController.protect, userController.deleteUser);
+        .patch(authController.protect, authController.restrictTo('admin'), userController.updateUser)
+        .delete(authController.protect, authController.restrictTo('admin'), userController.deleteUser);
 
 module.exports = router;

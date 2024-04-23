@@ -52,8 +52,9 @@ module.exports = class Email {
         // 3) Create a transport and send email
         await this.newTransport().sendMail(mailOptions);
     }
-
+    
     async verifyAccount() {
         await this.send('verifyAccount', 'Email Verification needed');
     }
+    
 }

@@ -80,6 +80,8 @@ const User = db.define("users", {
   }
 });
 
+
+
 // before data being saved encrypt the password
 User.beforeCreate(async (user) => {
   // hash the password if it has been modified (or is new)

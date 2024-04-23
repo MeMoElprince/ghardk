@@ -2,7 +2,7 @@ const Product = require('../models/productModel');
 const color = require('../utils/colors');
 const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
-
+const crudFactory = require('./crudFactory');
 
 const filterObj = (obj, ...allowedFields) => {
     const newObj = {};
@@ -12,30 +12,8 @@ const filterObj = (obj, ...allowedFields) => {
     return newObj;
 }
 
-exports.createProduct = catchAsync(async (req, res, next) => {
-    const data = filterObj(req.body, 'name', 'description', 'category_id');
-    const product = await Product.create(data);
-    res.status(201).json({
-        status: 'success',
-        data: {
-            product
-        }
-    });
-});
-
-
-exports.getAllProducts = catchAsync(async (req, res, next) => {
-    const page = req.query.page * 1 || 1;
-    const limit = req.query.limit * 1 || 10;
-    const offset = (page - 1) * limit;
-    const products = await Product.findAll({
-        limit,
-        offset
-    });
-    res.status(200).json({
-        status: 'success',
-        data: {
-            products
-        }
-    });
-});
+exports.createProduct = crudFactory.createOne(Product, 'name', 'description', 'category_id');
+exports.getAllProducts = crudFactory.getAll(Product);
+exports.getProduct = crudFactory.getOne(Product);
+exports.updateProduct = crudFactory.updateOne(Product, 'name', 'description', 'category_id');
+exports.deleteProduct = crudFactory.deleteOne(Product);

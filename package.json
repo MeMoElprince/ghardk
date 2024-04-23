@@ -11,7 +11,9 @@
     "migrate:prod": "NODE_ENV=production npx sequelize-cli db:migrate",
     "migrate:create": "npx sequelize-cli migration:create --name",
     "migrate:undo": "npx sequelize-cli db:migrate:undo",
-    "migrate:undo:prod": "NODE_ENV=production npx sequelize-cli db:migrate:undo"
+    "migrate:undo:prod": "NODE_ENV=production npx sequelize-cli db:migrate:undo",
+    "migrate:undo:all": "NODE_ENV=development npx sequelize-cli db:migrate:undo:all",
+    "migrate:undo:all:prod": "NODE_ENV=production npx sequelize-cli db:migrate:undo:all"
   },
   "author": "Mustafa Elsharawy",
   "license": "ISC",

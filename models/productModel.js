@@ -19,4 +19,15 @@ const Product = db.define("products", {
   }
 });
 
+Product.associate = (models) => {
+  Product.belongsTo(models.Category, {
+    foreignKey: "category_id",
+    as: "category",
+  });
+  Product.hasMany(models.ProductItem, {
+    foreignKey: "product_id",
+    as: "productItems",
+  });
+}
+
 module.exports = Product;

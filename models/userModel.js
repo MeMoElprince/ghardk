@@ -1,18 +1,18 @@
 const db = require("../config/database");
-const sequelize = require("sequelize");
+const Sequelize = require("sequelize");
 const bcrypt = require("bcryptjs");
 const crypto = require('crypto');
 
 const User = db.define("users", {
   first_name: {
-    type: sequelize.STRING,
+    type: Sequelize.STRING,
     allowNull: false,
   },
   last_name: {
-    type: sequelize.STRING,
+    type: Sequelize.STRING,
   },
   email: {
-    type: sequelize.STRING,
+    type: Sequelize.STRING,
     allowNull: false,
     unique: true,
     validate: {
@@ -20,14 +20,14 @@ const User = db.define("users", {
     },
   },
   password: {
-    type: sequelize.STRING,
+    type: Sequelize.STRING,
     allowNull: false,
     validate: {
       len: [4, 32, "Password must be between 4 and 32 characters"],
     },
   },
   password_confirm: {
-    type: sequelize.STRING,
+    type: Sequelize.STRING,
     allowNull: false,
     validate: {
       len: [4, 32, "Password must be between 4 and 32 characters"],
@@ -39,43 +39,43 @@ const User = db.define("users", {
     },
   },
   role: {
-    type: sequelize.ENUM("customer", "admin", "vendor"),
+    type: Sequelize.ENUM("customer", "admin", "vendor"),
     defaultValue: "customer",
   },
   createdAt: {
-    type: sequelize.DATE,
-    defaultValue: sequelize.literal("CURRENT_TIMESTAMP"),
+    type: Sequelize.DATE,
+    defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
   },
   updatedAt: {
-    type: sequelize.DATE,
-    defaultValue: sequelize.literal("CURRENT_TIMESTAMP"),
+    type: Sequelize.DATE,
+    defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
   },
   dob: {
-    type: sequelize.DATE,
+    type: Sequelize.DATE,
   },
   gender: {
-    type: sequelize.ENUM("male", "female", "not specified"),
+    type: Sequelize.ENUM("male", "female", "not specified"),
     defaultValue: "not specified",
   },
   language_preference: {
-    type: sequelize.STRING,
+    type: Sequelize.STRING,
     defaultValue: "en",
   },
   password_changed_at: {
-    type: sequelize.DATE,
+    type: Sequelize.DATE,
   },
   secret_token: {
-    type: sequelize.STRING,
+    type: Sequelize.STRING,
   },
   secret_token_expires_at: {
-    type: sequelize.DATE,
+    type: Sequelize.DATE,
   },
   img: {
-    type: sequelize.STRING,
+    type: Sequelize.STRING,
     defaultValue: 'default.jpg'
   },
   active: {
-    type: sequelize.BOOLEAN,
+    type: Sequelize.BOOLEAN,
     defaultValue: false
   }
 });

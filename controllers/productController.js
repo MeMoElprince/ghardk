@@ -26,7 +26,7 @@ exports.createNewProduct = catchAsync(async (req, res, next) => {
     const newProduct = await Product.create(data);
 
     const vendor = await Vendor.findOne({where: {user_id: req.user.id}});
-    if(!vendorId) {
+    if(!vendor) {
         await newProduct.destroy();
         return next(new AppError('Vendor not found', 404));
     } 

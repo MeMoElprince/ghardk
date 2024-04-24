@@ -3,7 +3,9 @@ const router = express.Router();
 
 const authController = require('../controllers/authController');
 const productController = require('../controllers/productController');
+const cartRouter = require('./cartRouter');
 
+router.use('/:productId/carts/', cartRouter);
 
 router.route('/myProducts')
         .post(authController.protect, authController.restrictTo('vendor'), productController.createNewProduct)

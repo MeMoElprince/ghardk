@@ -83,7 +83,7 @@ const User = db.define("users", {
 
 
 // before data being saved encrypt the password
-User.beforeCreate(async (user) => {
+User.beforeSave(async (user) => {
   // hash the password if it has been modified (or is new)
   if (!user.changed("password")) {
     return;
@@ -94,7 +94,7 @@ User.beforeCreate(async (user) => {
   user.password_confirm = '';
 });
 
-// User.beforeCreate(async (user) => {
+// User.beforeSave(async (user) => {
 //   // password Changed At 
 //   if(!user.changed("password") || user.isNew("password"))
 //     return;

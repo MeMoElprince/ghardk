@@ -10,6 +10,8 @@ const productRouter = require('./routes/productRouter');
 const cartRouter = require('./routes/cartRouter');
 const countryRouter = require('./routes/countryRouter');
 const addressRouter = require('./routes/addressRouter');
+const productConfigurationRouter = require('./routes/productConfigurationRouter');
+const variationRouter = require('./routes/variationRouter');
 
 
 const app = express();
@@ -34,6 +36,8 @@ app.use('/api/v1/products', productRouter);
 app.use('/api/v1/carts', cartRouter);
 app.use('/api/v1/countries', countryRouter);
 app.use('/api/v1/addresses', addressRouter);
+app.use('/api/v1/configurations', productConfigurationRouter);
+app.use('/api/v1/variations', variationRouter);
 
 
 // global error handling middleware

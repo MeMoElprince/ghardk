@@ -93,6 +93,12 @@ module.exports = {
       }
     });
 
+    await queryInterface.addConstraint('product_configurations', {
+      type: 'unique',
+      fields: ['product_item_id', 'variation_option_id'],
+      name: 'unique_product_configuration'
+    });
+
   },
 
   async down (queryInterface, Sequelize) {

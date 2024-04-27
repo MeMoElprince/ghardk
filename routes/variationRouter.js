@@ -8,7 +8,7 @@ router.route('/options')
         .post(variationController.createVariationOption);
 
 router.route('/options/:id')
-        .get(variationController.getAllVariationOptions)
+        .get(variationController.getVariationOption)
         .patch(variationController.updateVariationOption)
         .delete(variationController.deleteVariationOption);
 

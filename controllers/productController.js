@@ -21,7 +21,7 @@ exports.updateProduct = crudFactory.updateOne(Product, 'name', 'description', 'c
 exports.deleteProduct = crudFactory.deleteOne(Product);
 
 
-exports.createNewProduct = catchAsync(async (req, res, next) => {
+exports.createNewProductItem = catchAsync(async (req, res, next) => {
     let data = filterObj(req.body, 'name', 'description', 'category_id');
     const newProduct = await Product.create(data);
 
@@ -48,7 +48,7 @@ exports.createNewProduct = catchAsync(async (req, res, next) => {
     });
 });
 // Not Completed
-exports.getAllMyProducts = catchAsync(async (req, res, next) => {
+exports.getAllMyProductItems = catchAsync(async (req, res, next) => {
     const page = req.query.page * 1 || 1;
     const limit = req.query.limit * 1 || 10;
     const offset = (page - 1) * limit;
@@ -72,7 +72,7 @@ exports.getAllMyProducts = catchAsync(async (req, res, next) => {
     });
 });
 // Not Completed
-exports.updateMyProduct = catchAsync(async (req, res, next) => {
+exports.updateMyProductItem = catchAsync(async (req, res, next) => {
     let data = filterObj(req.body, 'price', 'quantity');
     const productItem = await ProductItem.findByPk(req.params.id);
     if(!productItem) {
@@ -98,7 +98,7 @@ exports.updateMyProduct = catchAsync(async (req, res, next) => {
     });
 });
 
-exports.deleteMyProduct = catchAsync(async (req, res, next) => {
+exports.deleteMyProductItem = catchAsync(async (req, res, next) => {
     const productItem = await ProductItem.findByPk(req.params.id);
     if(!productItem) {
         return next(new AppError('Product Item not found', 404));

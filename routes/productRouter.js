@@ -8,13 +8,13 @@ const cartRouter = require('./cartRouter');
 router.use('/:productId/carts/', cartRouter);
 
 router.route('/myProducts')
-        .post(authController.protect, authController.restrictTo('vendor'), productController.createNewProduct)
-        .get(authController.protect, authController.restrictTo('vendor'), productController.getAllMyProducts);
+        .post(authController.protect, authController.restrictTo('vendor'), productController.createNewProductItem)
+        .get(authController.protect, authController.restrictTo('vendor'), productController.getAllMyProductItems);
 
 router.route('/myProducts/:id')
-        // .get(authController.protect, authController.restrictTo('vendor'), productController.getMyProduct)
-        .patch(authController.protect, authController.restrictTo('vendor'), productController.updateMyProduct)
-        .delete(authController.protect, authController.restrictTo('vendor'), productController.deleteMyProduct);
+        // .get(authController.protect, authController.restrictTo('vendor'), productController.getMyProductItem)
+        .patch(authController.protect, authController.restrictTo('vendor'), productController.updateMyProductItem)
+        .delete(authController.protect, authController.restrictTo('vendor'), productController.deleteMyProductItem);
 
 router.route('/')
         .post(productController.createProduct)

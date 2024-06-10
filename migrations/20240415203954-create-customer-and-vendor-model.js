@@ -4,7 +4,7 @@
 module.exports = {
   async up (queryInterface, Sequelize) {
 
-    queryInterface.createTable("customers", {
+    await queryInterface.createTable("customers", {
       id: {
         type: Sequelize.INTEGER,
         primaryKey: true,
@@ -29,7 +29,7 @@ module.exports = {
       },
     });
 
-    queryInterface.createTable("vendors", {
+    await queryInterface.createTable("vendors", {
       id: {
         type: Sequelize.INTEGER,
         primaryKey: true,
@@ -61,7 +61,7 @@ module.exports = {
       },
     });
 
-    queryInterface.createTable("carts", {
+    await queryInterface.createTable("carts", {
       id: {
         type: Sequelize.INTEGER,
         primaryKey: true,
@@ -88,8 +88,8 @@ module.exports = {
   },
 
   async down (queryInterface, Sequelize) {
-    queryInterface.dropTable("carts");
-    queryInterface.dropTable("vendors");
-    queryInterface.dropTable("customers");
+    await queryInterface.dropTable("carts");
+    await queryInterface.dropTable("vendors");
+    await queryInterface.dropTable("customers");
   }
 };

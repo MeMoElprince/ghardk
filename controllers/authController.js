@@ -7,6 +7,7 @@ const catchAsync = require('../utils/catchAsync');
 const Email = require('../utils/emailHandler');
 const color = require('../utils/colors');
 const tokenFactory = require('../utils/tokenFactory');
+const Balance = require('../models/balanceModel')
 
 
 const filterObj = (obj, ...allowedFields) => {
@@ -36,12 +37,25 @@ exports.signUp = catchAsync(async (req, res, next) => {
         console.log(color.FgCyan, 'Creating Vendor...', color.Reset);
         let vendor;
         try{
-            vendor = await Vendor.create(newData);
+            vendor = await Vendor.create(newData);  
             console.log(color.FgGreen, 'Vendor created successfully.', color.Reset);
         } catch (err)
         {
             await user.destroy();
             return next(new AppError('Vendor failed to be created', 400));
+        }
+
+        // create balance
+        console.log(color.FgCyan, 'Creating Balance...', color.Reset);
+        let balance;
+        try{
+            balance = await Balance.create({vendor_id: vendor.id});
+            console.log(color.FgGreen, 'Balance created successfully.', color.Reset);
+        } catch (err)
+        {
+            await vendor.destroy();
+            await user.destroy();
+            return next(new AppError('Balance failed to be created', 400));
         }
     }
 
@@ -79,8 +93,11 @@ exports.signUp = catchAsync(async (req, res, next) => {
 
 
     // send email to user with verification link
-    await new Email(user, secret_token).verifyAccount();
-    console.log(color.FgMagenta, 'Verification email sent successfully.', color.Reset);
+    if(process.env.NODE_ENV === 'production')
+    {
+        await new Email(user, secret_token).verifyAccount();
+        console.log(color.FgMagenta, 'Verification email sent successfully.', color.Reset);
+    }
 
     const result = {...user.toJSON(), token};
     res.status(201).json({

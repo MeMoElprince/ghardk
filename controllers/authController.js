@@ -7,7 +7,7 @@ const catchAsync = require('../utils/catchAsync');
 const Email = require('../utils/emailHandler');
 const color = require('../utils/colors');
 const tokenFactory = require('../utils/tokenFactory');
-const Balance = require('../models/balanceModel')
+const Balance = require('../models/balanceModel');
 
 
 const filterObj = (obj, ...allowedFields) => {

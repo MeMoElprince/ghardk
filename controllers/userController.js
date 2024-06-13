@@ -107,3 +107,19 @@ exports.deleteUser = catchAsync(async (req, res, next) => {
         data: null
     });
 });
+
+exports.getMe = catchAsync(async (req, res, next) => {
+    // get the user from the database with filtered fields 
+    const user = await User.findByPk(req.user.id, {
+        attributes: {
+            exclude: ['password', 'password_confirm', 'secret_token', 'secret_token_expires_at']
+        }
+    })
+
+    res.status(200).json({
+        status: 'success',
+        data: {
+            user
+        }
+    });
+});

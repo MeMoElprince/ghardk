@@ -15,7 +15,7 @@ const variationRouter = require('./routes/variationRouter');
 const keywordRouter = require('./routes/keywordRouter');
 const balanceRouter = require('./routes/balanceRouter');
 const favouriteRouter = require('./routes/favouriteRouter');
-
+const saleRouter = require('./routes/saleRouter');
 
 const app = express();
 
@@ -44,7 +44,7 @@ app.use('/api/v1/variations', variationRouter);
 app.use('/api/v1/keywords', keywordRouter);
 app.use('/api/v1/balances', balanceRouter);
 app.use('/api/v1/favourites', favouriteRouter);
-
+app.use('/api/v1/sales', saleRouter);
 
 // global error handling middleware
 app.use(globalErrorHandler);

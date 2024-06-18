@@ -30,18 +30,33 @@ const UserAddress = db.define("user_addresses", {
 // check if there is a user_id with is_default = true
 
 UserAddress.beforeSave(async (userAddress) => {
-    // check if there is a user_id with is_default = true
-    if(userAddress.is_default === true)
-    {
-        const userAddressExists = await UserAddress.findOne({
-          where: {
-            user_id: userAddress.user_id,
-            is_default: true,
-          },
+    if(userAddress.is_default === true){
+        const userAddresse = await UserAddress.findOne({
+            where: {
+                id: {
+                    [Sequelize.Op.ne]: userAddress.id
+                },
+                is_default: true
+            }
         });
-        if (userAddressExists) {
-            console.log(color.FgBlue, 'You should see the error not something verywrong in production', color.Reset);
-            throw new AppError("User already has a default address", 400);
+        if(userAddresse){
+            userAddresse.is_default = false;
+            userAddresse.save();
+        }
+    }
+    else
+    {
+       const userAddresse = await UserAddress.findOne({
+            where: {
+                id: {
+                  // not equal to the current id
+                    [Sequelize.Op.ne]: userAddress.id
+                },
+                is_default: true
+            }
+        });
+        if(!userAddresse){
+            userAddress.is_default = true;
         }
     }
 }); 

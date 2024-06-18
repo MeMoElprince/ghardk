@@ -2,6 +2,7 @@ const Address = require('../models/addressModel');
 const UserAddress = require('../models/userAddressModel');
 const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
+const Sequelize = require("sequelize");
 const color = require('../utils/colors');
 
 const filterObj = (obj, ...allowedFields) => {
@@ -51,6 +52,22 @@ exports.deleteAddress = catchAsync(async (req, res, next) => {
     });
     if(!address){
         return next(new AppError('No address found with that ID', 404));
+    }
+    if(userAddress.is_default)
+    {
+        const newDefaultUserAddress = await UserAddress.findOne({
+            where: {
+                user_id: req.user.id,
+                id: {
+                    [Sequelize.Op.ne]: userAddress.id
+                }
+            }
+        });
+        if(newDefaultUserAddress)
+        {
+            newDefaultUserAddress.is_default = true;
+            await newDefaultUserAddress.save();
+        }
     }
     await userAddress.destroy();
     await address.destroy();

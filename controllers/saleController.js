@@ -13,6 +13,7 @@ const Transaction = require("../models/transactionModel");
 const Sale = require("../models/saleModel");
 const SaleItem = require("../models/saleItemModel");
 const Balance = require("../models/balanceModel");
+const Vendor = require("../models/vendorModel");
 
 // checkout process has validations before start process and preparation for paymob data required and save the transaction and sale in the database
 // and some other process for us
@@ -173,58 +174,172 @@ exports.checkout = catchAsync(async (req, res, next) => {
 
 // callback
 exports.checkoutCallback = catchAsync(async (req, res, next) => {
-  // take intent_id as string
-  const intent_id = req.body.intention.id;
-  const success = req.body.transaction.success;
-  if (!success || !intent_id) {
-    return next(new AppError("Something went wrong", 400));
-  }
-  const sale = await Sale.findOne({ where: { intent_id } });
-  if (!sale) {
-    return next(new AppError("Sale not found", 404));
-  }
-  const transaction = await Transaction.findOne({
-    where: { id: sale.transaction_id },
-  });
-  const saleItems = await SaleItem.findAll({ where: { sale_id: sale.id } });
-
-  if (success === true) {
-    transaction.status = "success";
-    await transaction.save();
-    // empty cart
-    const customer = await Customer.findOne({
-      where: { id: sale.customer_id },
-    });
-    const cart = await Cart.findOne({ where: { customer_id: customer.id } });
-    const cartProducts = await CartProduct.findAll({
-      where: { cart_id: cart.id },
-    });
-    cartProducts.forEach(async (cartProduct) => {
-      await cartProduct.destroy();
-    });
-    // add balance
-    const balance = await Balance.findOne({
-      where: { vendor_id: sale.vendor_id },
-    });
-    balance.pending_credit =
-      balance.pending_credit * 1.0 + sale.total_price * 1.0;
-    await balance.save();
-  } else {
-    transaction.status = "cancelled";
-    sale.status = "cancelled";
-    await transaction.save();
-    await sale.save();
-    for (let i = 0; i < saleItems.length; i++) {
-      const productItem = await ProductItem.findOne({
-        where: {
-          id: saleItems[i].product_item_id,
-        },
-      });
-      productItem.quantity += saleItems[i].quantity;
-      await productItem.save();
+    console.log('checkoutCallback: ', req.body);
+    // take intent_id as string
+    const intent_id = req.body.intention.id;
+    const success = req.body.transaction.success;
+    if (!success || !intent_id) {
+        return next(new AppError("Something went wrong", 400));
     }
-  }
-  res.status(200).json({
-    status: "success",
-  });
+    const sale = await Sale.findOne({ where: { intent_id } });
+    if (!sale) {
+        return next(new AppError("Sale not found", 404));
+    }
+    const transaction = await Transaction.findOne({
+        where: { id: sale.transaction_id },
+    });
+    const saleItems = await SaleItem.findAll({ where: { sale_id: sale.id } });
+    console.log(req.body);
+    if(req.body.transaction.is_refunded === true)
+    {
+        return next(new AppError("Transaction is refunded", 400));
+    }
+    if (success === true) {
+        transaction.status = "success";
+        transaction.transaction_id = req.body.transaction.id;
+        await transaction.save();
+        // empty cart
+        const customer = await Customer.findOne({
+        where: { id: sale.customer_id },
+        });
+        const cart = await Cart.findOne({ where: { customer_id: customer.id } });
+        const cartProducts = await CartProduct.findAll({
+        where: { cart_id: cart.id },
+        });
+        cartProducts.forEach(async (cartProduct) => {
+        await cartProduct.destroy();
+        });
+        // add balance
+        const balance = await Balance.findOne({
+        where: { vendor_id: sale.vendor_id },
+        });
+        // 5% commission
+        let amount = sale.total_price * 1.0;
+        amount = amount - amount * 0.05; 
+        balance.pending_credit = balance.pending_credit * 1.0 + amount;
+        await balance.save();
+    }   
+    else {
+        transaction.status = "cancelled";
+        sale.status = "cancelled";
+        await transaction.save();
+        await sale.save();
+        for (let i = 0; i < saleItems.length; i++) {
+        const productItem = await ProductItem.findOne({
+            where: {
+            id: saleItems[i].product_item_id,
+            },
+        });
+        productItem.quantity += saleItems[i].quantity;
+        await productItem.save();
+        }
+    }
+    res.status(200).json({
+        status: "success",
+    });
+});
+
+exports.cancelSale = catchAsync(async (req, res, next) => {
+    // if the sale is pending, we can cancel it
+    // if the sale is success, we can not cancel it
+    // if the sale is cancelled, we can not cancel it
+    const sale = await Sale.findOne({ where: { id: req.params.id } });
+    if (!sale) {
+        return next(new AppError("Sale not found", 404));
+    }
+    if (sale.status === "success") {
+      return next(new AppError("Sale is already success", 400));
+    }
+    if (sale.status === "cancelled") {
+      return next(new AppError("Sale is already cancelled", 400));
+    }
+    if(req.user.role === 'vendor')
+    {
+        const vendor = await Vendor.findOne({ where: { user_id: req.user.id } });
+        if (!vendor) {
+          return next(new AppError("You are not a vendor", 401));
+        }
+        if (sale.vendor_id !== vendor.id) {
+          return next(new AppError("You can not cancel this sale you don't own", 401));
+        }
+    }
+    if(req.user.role === 'customer')
+    {
+        const customer = await Customer.findOne({ where: { user_id: req.user.id } });
+        if (!customer) {
+          return next(new AppError("You are not a customer", 401));
+        }
+        if (sale.customer_id !== customer.id) {
+          return next(new AppError("You can not cancel this sale you don't have", 401));
+        }
+    }
+    const transaction = await Transaction.findOne({ where: { id: sale.transaction_id } });
+    if (!transaction) {
+      return next(new AppError("Transaction not found", 404));
+    }
+    if(req.user.role === 'customer')
+    {
+        if(transaction.status !== 'pending' || sale.status !== 'pending')
+            return next(new AppError("You can not cancel this sale", 400));
+    }
+    sale.status = "cancelled";
+    await sale.save();
+    // if transaction is pending, we can cancel it
+    // if transaction is success, we refund it
+    if (transaction.status === "success") {
+        // refund the user
+        
+        const headers = new Headers();
+        headers.append("Authorization", `Token ${process.env.SECRET_KEY}`);
+        headers.append("Content-Type", "application/json");
+        let amount = sale.total_price * 1.0;
+        amount *= 100.0;
+        const raw = JSON.stringify({ amount, transaction_id: transaction.transaction_id });
+        const requestOptions = {
+          method: "POST",
+          headers,
+          body: raw,
+          redirect: "follow",
+        };
+        
+        const response = await fetch(
+          "https://accept.paymob.com/api/acceptance/void_refund/refund",
+          requestOptions
+        );
+        
+        const result = await response.json();
+        if(result.success === true)
+        {
+            transaction.status = "refunded";
+            await transaction.save();
+        }
+        else
+        {
+            console.log('refund failed for transaction id: ', transaction.transaction_id);
+            return next(new AppError("Refund failed", 400));
+        }
+        // return the balance from the vendor
+        const balance = await Balance.findOne({ where: { vendor_id: sale.vendor_id } });
+        // 5% commission
+        console.log('sale.total_price: ', sale.total_price * 1.0);
+        amount = sale.total_price * 1.0;
+        amount = amount - amount * 0.05;
+        balance.pending_credit = balance.pending_credit * 1.0 - amount;
+        await balance.save();
+    }
+    else if (transaction.status === "pending") {
+      transaction.status = "cancelled";
+      await transaction.save();
+    }
+    // return the quantity to the product item
+    const saleItems = await SaleItem.findAll({ where: { sale_id: sale.id } });
+    for (let i = 0; i < saleItems.length; i++) {
+      const productItem = await ProductItem.findOne({ where: { id: saleItems[i].product_item_id } });
+        productItem.quantity += saleItems[i].quantity;
+        await productItem.save();
+    }
+    res.status(200).json({
+      status: "success",
+      message: "Sale cancelled successfully",
+    });    
 });

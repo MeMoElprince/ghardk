@@ -7,6 +7,9 @@ const Transaction = db.define('transaction', {
       allowNull: false,
       defaultValue: 'pending'
     },
+    transaction_id: {
+      type: Sequelize.INTEGER
+    },
   });
 
 module.exports = Transaction;

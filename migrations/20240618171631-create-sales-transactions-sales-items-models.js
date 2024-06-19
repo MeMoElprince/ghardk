@@ -15,6 +15,9 @@ module.exports = {
         allowNull: false,
         defaultValue: 'pending'
       },
+      transaction_id: {
+        type: Sequelize.INTEGER
+      },
       createdAt: {
         type: Sequelize.DATE,
         allowNull: false,

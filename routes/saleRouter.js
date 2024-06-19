@@ -7,9 +7,14 @@ const authController = require('../controllers/authController');
 
 
 router.route('/checkout')
-            .post(authController.protect, authController.restrictTo('customer'), saleController.checkout);
+            .patch(authController.protect, authController.restrictTo('customer'), saleController.checkout);
 
 router.route('/checkout-callback')
             .post(saleController.checkoutCallback);
+
+
+router.route('/:id/cancel-sale')
+            .patch(authController.protect, authController.restrictTo('vendor', 'admin'), saleController.cancelSale);
+
 
 module.exports = router;

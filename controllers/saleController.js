@@ -391,7 +391,7 @@ exports.confirmSale = catchAsync(async (req, res, next) => {
   {
     console.log('saleItems[i]: ', saleItems[i]);
     await Review.create({
-      sale_item_id: saleItems[i].id,
+      product_item_id: saleItems[i].product_item_id,
       customer_id: sale.customer_id,
       rating: 0,
       comment: '',

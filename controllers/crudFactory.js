@@ -22,12 +22,19 @@ exports.createOne = (Model, ...allowdFields) => catchAsync(async (req, res, next
 });
 
 exports.getAll = (Model) => catchAsync(async (req, res, next) => {
+    // filteration
+    const queryObj = {...req.query};
+    const excludedFields = ['page', 'sort', 'limit', 'fields'];
+    excludedFields.forEach(el => delete queryObj[el]);
+    console.log(queryObj);
     const page = req.query.page * 1 || 1;
     const limit = req.query.limit * 1 || 10;
     const offset = (page - 1) * limit;
+    // filter 
     const docs = await Model.findAll({
         limit,
-        offset
+        offset,
+        where: queryObj,
     });
     res.status(200).json({
         status: 'success',

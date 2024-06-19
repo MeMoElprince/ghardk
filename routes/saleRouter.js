@@ -15,5 +15,6 @@ router.route('/checkout-callback')
 router.route('/:id/cancel-sale')
             .patch(authController.protect, saleController.cancelSale);
 
-
+router.route('/:id/confirm-sale')
+            .patch(authController.protect, authController.restrictTo('admin'), saleController.confirmSale);
 module.exports = router;

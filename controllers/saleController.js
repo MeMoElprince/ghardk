@@ -14,6 +14,8 @@ const Sale = require("../models/saleModel");
 const SaleItem = require("../models/saleItemModel");
 const Balance = require("../models/balanceModel");
 const Vendor = require("../models/vendorModel");
+const Review = require('../models/reviewModel');
+
 
 // checkout process has validations before start process and preparation for paymob data required and save the transaction and sale in the database
 // and some other process for us
@@ -342,4 +344,62 @@ exports.cancelSale = catchAsync(async (req, res, next) => {
       status: "success",
       message: "Sale cancelled successfully",
     });    
+});
+
+exports.confirmSale = catchAsync(async (req, res, next) => {
+  // 
+  const sale = await Sale.findOne({ where: { id: req.params.id } });
+  if (!sale) {
+    return next(new AppError("Sale not found", 404));
+  }
+  if(sale.status === 'success')
+  {
+    return next(new AppError("Sale is already success", 400));
+  }
+  if(sale.status === 'cancelled')
+  {
+    return next(new AppError("Sale is already cancelled", 400));
+  }
+  const transaction = await Transaction.findOne({ where: { id: sale.transaction_id } });
+  if (!transaction) {
+    return next(new AppError("Transaction not found", 404));
+  }
+  if(transaction.status !== 'success')
+  {
+    return next(new AppError("Transaction is not success", 400));
+  }
+  console.log('sale: ', sale);
+  console.log('transaction: ', transaction);
+  sale.status = 'success';
+  await sale.save();
+
+  // add balance
+  const balance = await Balance.findOne({ where: { vendor_id: sale.vendor_id } });
+  console.log({balance});
+  // 5% commission
+  let amount = sale.total_price * 1.0;
+  amount = amount - amount * 0.05;
+  balance.pending_credit = balance.pending_credit * 1.0 - amount;
+  balance.credit = balance.credit * 1.0 + amount;
+  await balance.save();
+
+
+  // add review
+  const saleItems = await SaleItem.findAll({ where: { sale_id: sale.id } });
+  
+  for(let i = 0; i < saleItems.length; i++)
+  {
+    console.log('saleItems[i]: ', saleItems[i]);
+    await Review.create({
+      sale_item_id: saleItems[i].id,
+      customer_id: sale.customer_id,
+      rating: 0,
+      comment: '',
+    }); 
+  }
+
+  res.status(200).json({
+    status: "success",
+    message: "Sale confirmed successfully, a review will be added for the customer",
+  });
 });

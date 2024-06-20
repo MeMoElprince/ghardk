@@ -200,13 +200,11 @@ exports.login = catchAsync(async (req, res, next) => {
     if(!user || !await user.validatePassword(data.password))
         return next(new AppError('Email or password isn\'t correct...', 401)); 
 
-    if(!user.active)
-        return next(new AppError('You havn\'t verified your account yet!!', 401));
-
     const token = tokenFactory.sign({id: user.id});
     res.status(200).json({
         status: "success",
         data: {
+            active: user.active,
             token
         }
     });

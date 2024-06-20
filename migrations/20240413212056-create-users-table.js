@@ -26,21 +26,10 @@ module.exports = {
       },
       password: {
         type: Sequelize.STRING,
-        validate: {
-          len: [4, 32, 'Password must be between 4 and 32 characters']
-        }
       },
       password_confirm: {
         type: Sequelize.STRING,
         allowNull: false,
-        validate: {
-          len: [4, 32, 'Password must be between 4 and 32 characters'],
-          isSameAsPassword (value) {
-            if (value !== this.password) {
-              throw new Error('Password and confirm password must be the same');
-            }
-          }
-        }
       },
       role: {
         type: Sequelize.ENUM('customer', 'admin', 'vendor'),

@@ -8,7 +8,9 @@ const Email = require('../utils/emailHandler');
 const color = require('../utils/colors');
 const tokenFactory = require('../utils/tokenFactory');
 const Balance = require('../models/balanceModel');
-
+const {imageUpload} = require('../utils/multer');
+const imageKit = require('imagekit');
+const Image = require('../models/imageModel');
 
 const filterObj = (obj, ...allowedFields) => {
     const newObj = {};
@@ -18,18 +20,66 @@ const filterObj = (obj, ...allowedFields) => {
     return newObj;
 }
 
+
+const imageKitConfig = new imageKit({
+    publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
+    privateKey: process.env.IMAGEKIT_PRIVATE_KEY,
+    urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT
+});
+
+exports.uploadImage = imageUpload.single('image');
+
+exports.uploadToImageKit = catchAsync(async (req, res, next) => {
+    if(!req.file)
+        return next();
+    req.body.image = req.file;
+    next();
+});
+
 exports.signUp = catchAsync(async (req, res, next) => {
-    const data = filterObj(req.body, 'first_name', 'last_name', 'email', 'password', 'password_confirm', 'role', 'dob', 'gender');
+    const data = filterObj(req.body, 'first_name', 'last_name', 'email', 'password', 'password_confirm', 'role', 'dob', 'gender', 'user_name');
     if(data.role === 'admin' || !data.role) {
         return next(new AppError('Invalid role value', 401));
     }
-    
-    
     // hash the password automatically when create or save
+    let local = true;
+    let image, newImage;
+    console.log('here first');
+    if(req.body.image)
+    {
+        console.log('tryingggg image');
+        image = await imageKitConfig.upload({
+            file: req.body.image.buffer.toString('base64'),
+            fileName: req.body.image.originalname,
+            folder: '/users'
+        });
+        newImage = await Image.create({
+            url: image.url,
+            remote_id: image.fileId
+        });
+        data.image_id = newImage.id;  
+        local = false;
+    }
+    else
+    {
+        newImage = await Image.create({
+            url: 'https://ik.imagekit.io/nyep6gibl/default.jpg?updatedAt=1718367419170',
+        });
+        local = true;
+    }
+    data.image_id = newImage.id;
     console.log(color.FgCyan, 'Creating user...', color.Reset);
-    const user = await User.create(data);
+    let user;
+    try {
+        user = await User.create(data);
+    } catch (err) {
+        if(newImage)
+            await newImage.destroy();
+        if(!local)
+            await imageKitConfig.deleteFile(image.fileId);
+        return next(new AppError(`User failed to be created ${err.message}`, 400));
+    }
     console.log(color.FgGreen, 'User created successfully.', color.Reset);
-    
     if(data.role === 'vendor') {
         const newData = filterObj(req.body, 'national_id');
         newData.user_id = user.id;
@@ -42,6 +92,10 @@ exports.signUp = catchAsync(async (req, res, next) => {
         } catch (err)
         {
             await user.destroy();
+            if(newImage)
+                await newImage.destroy();
+            if(!local)
+                await imageKitConfig.deleteFile(image.fileId);
             return next(new AppError('Vendor failed to be created', 400));
         }
 
@@ -55,6 +109,10 @@ exports.signUp = catchAsync(async (req, res, next) => {
         {
             await vendor.destroy();
             await user.destroy();
+            if(newImage)
+                await newImage.destroy();
+            if(!local)
+                await imageKitConfig.deleteFile(image.fileId);
             return next(new AppError('Balance failed to be created', 400));
         }
     }
@@ -69,6 +127,10 @@ exports.signUp = catchAsync(async (req, res, next) => {
             console.log(color.FgGreen, 'Customer created successfully.', color.Reset);
         } catch (err) {
             await user.destroy();
+            if(newImage)
+                await newImage.destroy();
+            if(!local)
+                await imageKitConfig.deleteFile(image.fileId);
             return next(new AppError('Customer failed to be created', 400));
         }
 
@@ -78,8 +140,13 @@ exports.signUp = catchAsync(async (req, res, next) => {
             const cart = await Cart.create({customer_id: customer.id});
             console.log(color.FgGreen, 'Cart created successfully.', color.Reset);
         } catch (err) {
+            
             await customer.destroy();
             await user.destroy();
+            if(newImage)
+                await newImage.destroy();
+            if(!local)
+                await imageKitConfig.deleteFile(image.fileId);
             return next(new AppError('Cart failed to be created', 400));
         }
     }

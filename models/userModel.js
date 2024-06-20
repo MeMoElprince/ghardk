@@ -70,13 +70,21 @@ const User = db.define("users", {
   secret_token_expires_at: {
     type: Sequelize.DATE,
   },
-  img: {
-    type: Sequelize.STRING,
-    defaultValue: 'default.jpg'
-  },
   active: {
     type: Sequelize.BOOLEAN,
     defaultValue: false
+  },
+  user_name: {
+    type: Sequelize.STRING,
+    allowNull: false
+  },
+  image_id: {
+    type: Sequelize.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'images',
+      key: 'id'
+    }
   }
 });
 

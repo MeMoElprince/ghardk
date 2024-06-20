@@ -11,9 +11,13 @@ const productImage = DB.define('product_image', {
         key: 'id'
         }
     },
-    value: {
-        type: Sequelize.STRING,
-        allowNull: false
+    image_id: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+            model: 'images',
+            key: 'id'
+        }
     }
 });
 

@@ -5,9 +5,12 @@ const authController = require('../controllers/authController');
 const productController = require('../controllers/productController');
 const cartRouter = require('./cartRouter');
 const reviewRouter = require('./reviewRouter');
+const productImageRouter = require('./productImageRouter');
 
+router.use('/:productId/images', productImageRouter);
 router.use('/:productId/carts/', cartRouter);
 router.use('/:productId/reviews', reviewRouter);
+
 router.route('/myProducts')
         .post(authController.protect, authController.restrictTo('vendor'), productController.createNewProductItem)
         .get(authController.protect, authController.restrictTo('vendor'), productController.getAllMyProductItems);

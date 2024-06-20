@@ -5,6 +5,33 @@ const color = require('../utils/colors');
 const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
 const crudFactory = require('./crudFactory');
+const { imageUpload } = require('../utils/multer');
+const imageKit = require('imagekit');
+const Image = require('../models/imageModel');
+const ProductImage = require('../models/productImageModel');
+
+const imageKitConfig = new imageKit({
+    publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
+    privateKey: process.env.IMAGEKIT_PRIVATE_KEY,
+    urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT
+});
+
+
+
+exports.uploadProductImage = imageUpload.fields([
+    {name: 'images', maxCount: 10, minCount: 1},
+]);
+
+exports.uploadProductImageToImageKit = catchAsync(async (req, res, next) => {
+    if(!req.files.images) {
+        return next(new AppError('Please upload an image', 400));
+    }
+    req.body.images = req.files.images;
+    next();
+});
+
+
+
 
 const filterObj = (obj, ...allowedFields) => {
     const newObj = {};
@@ -113,6 +140,64 @@ exports.deleteMyProductItem = catchAsync(async (req, res, next) => {
     }
     await productItem.destroy();
     await product.destroy();
+    res.status(204).json({
+        status: 'success',
+        data: null
+    });
+});
+
+
+exports.createProductImages = catchAsync(async (req, res, next) => {
+    const productItem = await ProductItem.findByPk(req.params.productId);
+    if(!productItem) {
+        return next(new AppError('Product item not found', 404));
+    }
+    if(!req.files.images) {
+        return next(new AppError('Please upload an image', 400));
+    }
+    const images = req.body.images;
+    const imageUrls = [];
+    for(let i = 0; i < images.length; i++) {
+        const image = images[i];
+        const imageKitResponse = await imageKitConfig.upload({
+            file: image.buffer.toString('base64'),
+            fileName: image.originalname,
+            folder: `/productImages`
+        });
+        imageUrls.push(imageKitResponse.url);
+        const newImage = await Image.create({
+            url: imageKitResponse.url,
+            remote_id: imageKitResponse.fileId,
+        });
+        const productImage = await ProductImage.create({
+            product_item_id: productItem.id,
+            image_id: newImage.id
+        })
+    }
+    res.status(201).json({
+        status: 'success',
+        data: {
+            imageUrls
+        }
+    });
+});
+
+exports.deleteProductImage = catchAsync(async (req, res, next) => {
+    const productImage = await ProductImage.findByPk(req.params.id);
+    if(!productImage) {
+        return next(new AppError('Product Image not found', 404));
+    }
+    const image = await Image.findByPk(productImage.image_id);
+    if(!image) {
+        await productImage.destroy();
+        return res.status(204).json({
+            status: 'success',
+            data: null
+        });
+    }
+    await productImage.destroy();
+    await imageKitConfig.deleteFile(image.remote_id);
+    await image.destroy();
     res.status(204).json({
         status: 'success',
         data: null

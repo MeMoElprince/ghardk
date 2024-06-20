@@ -17,6 +17,7 @@ const balanceRouter = require('./routes/balanceRouter');
 const favouriteRouter = require('./routes/favouriteRouter');
 const saleRouter = require('./routes/saleRouter');
 const reviewRouter = require('./routes/reviewRouter');
+const productImagesRouter = require('./routes/productImageRouter');
 
 const app = express();
 
@@ -47,6 +48,7 @@ app.use('/api/v1/balances', balanceRouter);
 app.use('/api/v1/favourites', favouriteRouter);
 app.use('/api/v1/sales', saleRouter);
 app.use('/api/v1/reviews', reviewRouter);
+app.use('/api/v1/product-images', productImagesRouter);
 
 // global error handling middleware
 app.use(globalErrorHandler);

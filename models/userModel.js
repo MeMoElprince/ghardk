@@ -21,22 +21,11 @@ const User = db.define("users", {
   },
   password: {
     type: Sequelize.STRING,
-    allowNull: false,
-    validate: {
-      len: [4, 32, "Password must be between 4 and 32 characters"],
-    },
+    allowNull: false
   },
   password_confirm: {
     type: Sequelize.STRING,
-    allowNull: false,
-    validate: {
-      len: [4, 32, "Password must be between 4 and 32 characters"],
-      isSameAsPassword(value) {
-        if (value !== this.password) {
-          throw new Error("Password and confirm password must be the same");
-        }
-      },
-    },
+    allowNull: false
   },
   role: {
     type: Sequelize.ENUM("customer", "admin", "vendor"),
@@ -91,15 +80,24 @@ const User = db.define("users", {
 
 
 // before data being saved encrypt the password
-User.beforeSave(async (user) => {
+// this function is called before the data is saved and after the data is validated
+
+
+
+User.beforeSave('save', async (user) => {
   // hash the password if it has been modified (or is new)
   if (!user.changed("password")) {
     return;
   }
+  if(user.password !== user.password_confirm)
+    throw new Error("password and confirm password do not match");
+  if(user.password.length < 4)
+    throw new Error("password must be atleast 4 characters long");
   // generate a salt
   const salt = await bcrypt.genSalt(10);
   user.password = await bcrypt.hash(user.password, salt);
   user.password_confirm = '';
+  user.password_changed_at = Date.now() - 1000;
 });
 
 // User.beforeSave(async (user) => {

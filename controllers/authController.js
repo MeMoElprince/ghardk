@@ -11,6 +11,10 @@ const Balance = require('../models/balanceModel');
 const {imageUpload} = require('../utils/multer');
 const imageKit = require('imagekit');
 const Image = require('../models/imageModel');
+const Sequelize = require('sequelize');
+const crypto = require('crypto');
+
+
 
 const filterObj = (obj, ...allowedFields) => {
     const newObj = {};
@@ -156,14 +160,21 @@ exports.signUp = catchAsync(async (req, res, next) => {
     // create a secret token 
     const secret_token = user.createSecretToken();
     await user.save();
-    console.log(color.FgRed, `Secret token: ${secret_token}`, color.Reset);
+    if(process.env.NODE_ENV !== 'production')
+        console.log(color.FgRed, `Secret token: ${secret_token}`, color.Reset);
 
 
     // send email to user with verification link
     if(process.env.NODE_ENV === 'production')
     {
-        await new Email(user, secret_token).verifyAccount();
-        console.log(color.FgMagenta, 'Verification email sent successfully.', color.Reset);
+        try {
+            await new Email(user, secret_token).verifyAccount();
+            console.log(color.FgMagenta, 'Verification email sent successfully.', color.Reset);
+        } catch (err) {
+            user.secret_token = null;
+            user.secret_token_expires_at = null;
+            return next(new AppError('You have signedup successfully, But there was an error sending the email code verification. ask for code later!!', 500));
+        }
     }
 
     const result = {...user.toJSON(), token};
@@ -177,6 +188,7 @@ exports.signUp = catchAsync(async (req, res, next) => {
 
 exports.login = catchAsync(async (req, res, next) => {
     const data = filterObj(req.body, 'email', 'password');
+
     if(!data.password || !data.email)
         return next(new AppError('You must provide an email and password together!', 400));
     const user = await User.findOne({
@@ -184,14 +196,53 @@ exports.login = catchAsync(async (req, res, next) => {
             email: data.email
         }
     });
+
     if(!user || !await user.validatePassword(data.password))
         return next(new AppError('Email or password isn\'t correct...', 401)); 
+
+    if(!user.active)
+        return next(new AppError('You havn\'t verified your account yet!!', 401));
+
     const token = tokenFactory.sign({id: user.id});
     res.status(200).json({
         status: "success",
         data: {
             token
         }
+    });
+});
+
+exports.sendVerificationEmail = catchAsync(async (req, res, next) => {
+    const email = req.body.email;
+    const user = await User.findOne({
+        where: {
+            email
+        }
+    });
+    if(!user)
+        return next(new AppError('User not found!!', 404));
+    if(user.active)
+        return next(new AppError('User already active!!', 400));
+    const secret_token = user.createSecretToken();
+    await user.save();
+    if(process.env.NODE_ENV === 'production')
+    {
+        try {
+            await new Email(user, secret_token).verifyAccount();
+            console.log(color.FgMagenta, 'Verification email sent successfully.', color.Reset);
+        } catch (err) {
+            user.secret_token = null;
+            user.secret_token_expires_at = null;
+            return next(new AppError('There was an error sending the email code verification. ask for code later!!', 500));
+        }
+    }
+    else
+    {
+        console.log(color.FgMagenta, `Secret token: ${secret_token}`, color.Reset);
+    }
+    res.status(200).json({
+        status: 'success',
+        message: 'Verification email sent successfully.'
     });
 });
 
@@ -209,15 +260,128 @@ exports.protect = catchAsync(async (req, res, next) => {
     if(!currentUser)
         return next(new AppError('User doesn\'t exist!!', 401));
     // check if user changed password after the token was issued
-    // if(currentUser.changed_password_at(decoded.iat))
-    //     return next(new AppError('قام المستخدم مؤخرًا بتغيير كلمة المرور! الرجاد الدخول على الحساب من جديد.', 401));
-    // grant access to protected route
+    // convert the password changed at to milliseconds 
+    const passwordChangedAt = new Date(currentUser.password_changed_at).getTime() / 1000;
+    if(passwordChangedAt > decoded.iat)
+        return next(new AppError('User recently changed password. Please login again!!', 401));
+
     if(!currentUser.active)
         return next(new AppError('You havn\'t verified your account yet!!', 401));
     
     req.user = currentUser;
     next();
 });
+
+exports.verifyAccount = catchAsync(async (req, res, next) => {
+    const secretToken = crypto.createHash("sha256").update(req.body.secretToken).digest("hex");
+    const user = await User.findOne({
+        where: {
+            secret_token: secretToken,
+            secret_token_expires_at: {
+                [Sequelize.Op.gte]: Date.now()
+            },
+            active: false,
+            email: req.body.email
+        } 
+    });
+    
+    if(!user)
+        return next(new AppError('Invalid token or token expired or user already active!!', 400));
+    
+    user.active = true;
+    user.secret_token = null;
+    user.secret_token_expires_at = null;
+    await user.save();
+    
+    res.status(200).json({
+        status: 'success',
+        message: 'Account verified successfully.'
+    });
+
+});
+
+
+exports.forgetPassword = catchAsync(async (req , res, next) => {
+    const user = await User.findOne({
+        where: {
+            email: req.body.email
+        }
+    });
+
+    if(!user)
+        return next(new AppError('User not found!!', 404));
+    // create reset token
+
+    const resetToken = user.createSecretToken();
+    user.save({validateBeforeSave: false}); 
+
+    // send it to user's email
+    if(process.env.NODE_ENV === 'production')
+    {
+        await new Email(user, resetToken).resetPassword();
+        console.log(color.FgMagenta, 'Password reset email sent successfully.', color.Reset);
+    }
+    else
+    {
+        console.log(color.FgMagenta, `Reset token: ${resetToken}`, color.Reset);
+    }
+    res.status(200).json({
+        status: 'success',
+        message: 'Reset token sent to email successfully'
+    });
+});
+
+exports.resetToken = catchAsync(async (req, res, next) => {
+    const secretToken = crypto.createHash("sha256").update(req.body.secretToken).digest("hex");
+    const user = await User.findOne({
+        where: {
+            secret_token: secretToken,
+            secret_token_expires_at: {
+                [Sequelize.Op.gte]: Date.now()
+            },
+            email: req.body.email
+        }
+    });
+    if(!user)
+        return next(new AppError('Invalid token or token expired!!', 400));
+    res.status(200).json({
+        status: 'success',
+        message: 'Valid token provided.'
+    });
+});
+
+exports.resetPassword = catchAsync(async (req, res, next) => {
+    if(!req.body.password || !req.body.password_confirm)
+        return next(new AppError('You must provide password and password_confirm together!!', 400));
+    if(!req.body.secretToken || !req.body.email)
+        return next(new AppError('You must provide secretToken and email together!!', 400));
+    const secretToken = crypto.createHash("sha256").update(req.body.secretToken).digest("hex");
+    const email = req.body.email;
+    const user = await User.findOne({
+        where: {
+            secret_token: secretToken,
+            secret_token_expires_at: {
+                [Sequelize.Op.gte]: Date.now()
+            },
+            email
+        }
+    });
+    if(!user)
+        return next(new AppError('Invalid token or token expired!!', 400));
+    user.password = req.body.password;
+    user.password_confirm = req.body.password_confirm;
+    user.secret_token = null;
+    user.secret_token_expires_at = null;
+    await user.save();
+    res.status(200).json({
+        status: 'success',
+        message: 'Password reset successfully.',
+        data: {
+            user
+        }
+    });
+});
+
 
 exports.restrictTo = (...roles) => {
     return (req, res, next) => {

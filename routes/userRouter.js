@@ -6,6 +6,12 @@ const authController = require('../controllers/authController');
     
 router.route('/signup').post(authController.uploadImage, authController.uploadToImageKit, authController.signUp);
 router.route('/login').post(authController.login);
+router.route('/verify').post(authController.verifyAccount);
+router.route('/forget-password').post(authController.forgetPassword);
+router.route('/reset-token').post(authController.resetToken);
+router.route('/reset-password').post(authController.resetPassword);
+router.route('/verify-token').post(authController.sendVerificationEmail);
+
 
 router.get('/getMe', authController.protect, userController.getMe);
 

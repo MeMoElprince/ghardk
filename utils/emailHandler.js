@@ -57,4 +57,8 @@ module.exports = class Email {
         await this.send('verifyAccount', 'Email Verification needed');
     }
     
+    async resetPassword() {
+        await this.send('forgetPassword', 'Password Reset');
+    }
+    
 }

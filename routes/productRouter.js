@@ -20,6 +20,9 @@ router.route('/myProducts/:id')
         .patch(authController.protect, authController.restrictTo('vendor'), productController.updateMyProductItem)
         .delete(authController.protect, authController.restrictTo('vendor'), productController.deleteMyProductItem);
 
+router.route('/recommendation-text/:text')
+        .get(productController.getSimilarProductsByText);
+
 router.route('/')
         .post(productController.createProduct)
         .get(productController.getAllProducts);

@@ -9,6 +9,8 @@ const { imageUpload } = require('../utils/multer');
 const imageKit = require('imagekit');
 const Image = require('../models/imageModel');
 const ProductImage = require('../models/productImageModel');
+const fetch = require('node-fetch');
+const db = require('../config/database');
 
 const imageKitConfig = new imageKit({
     publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
@@ -48,6 +50,8 @@ exports.updateProduct = crudFactory.updateOne(Product, 'name', 'description', 'c
 exports.deleteProduct = crudFactory.deleteOne(Product);
 
 
+
+
 exports.createNewProductItem = catchAsync(async (req, res, next) => {
     let data = filterObj(req.body, 'name', 'description', 'category_id');
     const newProduct = await Product.create(data);
@@ -67,6 +71,28 @@ exports.createNewProductItem = catchAsync(async (req, res, next) => {
         await newProduct.destroy();
         return next(new AppError(`Product Item could not be created, ${err.message}`, 500));
     }
+
+
+    // Add to AI DB
+    const myHeaders = new Headers();
+    myHeaders.append("Content-Type", "application/json");
+    const aiData = {
+        id: `${productItem.id}`,
+        name: newProduct.name,
+        description: newProduct.description
+    };
+    const raw = JSON.stringify(aiData);
+    const requestOptions = {
+        method: "POST",
+        headers: myHeaders,
+        body: raw,
+        redirect: "follow",
+    };
+    const response = await fetch(`${process.env.AI_URL}/item`, requestOptions);
+    const result = await response.json();
+    console.log(result);
+
+
     res.status(201).json({
         status: 'success',
         data: {
@@ -74,6 +100,7 @@ exports.createNewProductItem = catchAsync(async (req, res, next) => {
         }
     });
 });
+
 // Not Completed
 exports.getAllMyProductItems = catchAsync(async (req, res, next) => {
     const page = req.query.page * 1 || 1;
@@ -99,6 +126,8 @@ exports.getAllMyProductItems = catchAsync(async (req, res, next) => {
     });
 });
 // Not Completed
+
+
 exports.updateMyProductItem = catchAsync(async (req, res, next) => {
     let data = filterObj(req.body, 'price', 'quantity');
     const productItem = await ProductItem.findByPk(req.params.id);
@@ -116,7 +145,29 @@ exports.updateMyProductItem = catchAsync(async (req, res, next) => {
         }
         await product.update(data);
         productItem.product_id = product;
+    }   
+    
+    // Update AI DB
+    if(data.name || data.description) {
+        const myHeaders = new Headers();
+        myHeaders.append("Content-Type", "application/json");
+        const aiData = {
+            name: data.name,
+            description: data.description
+        };
+        const raw = JSON.stringify(aiData);
+        const requestOptions = {
+            method: "PATCH",
+            headers: myHeaders,
+            body: raw,
+            redirect: "follow",
+        };
+        const response = await fetch(`${process.env.AI_URL}/item/${productItem.id}`, requestOptions);
+        const result = await response.json();
+        console.log({result});
+        console.log('If Error Message:', result.detail);
     }
+
     res.status(200).json({
         status: 'success',
         data: {
@@ -131,8 +182,35 @@ exports.deleteMyProductItem = catchAsync(async (req, res, next) => {
         return next(new AppError('Product Item not found', 404));
     }
     const product = await Product.findByPk(productItem.product_id);
+    const productImages = await ProductImage.findAll({
+        where: {
+            product_item_id: productItem.id
+        }
+    });
+    for(let i = 0; i < productImages.length; i++) {
+        const productImage = productImages[i];
+        const image = await Image.findByPk(productImage.image_id);
+        await productImage.destroy();
+        if(image) {
+            try {
+                await imageKitConfig.deleteFile(image.remote_id);
+                await image.destroy();
+            } catch(err) {
+                console.log(err.message);
+            }
+        }
+    }
     if(!product) {
         await productItem.destroy();
+        // Delete from AI DB
+        const requestOptions = {
+            method: "DELETE",
+            redirect: "follow",
+        };
+        const response = await fetch(`${process.env.AI_URL}/item/${productItem.id}`, requestOptions);
+        const result = await response.json();
+        console.log({result});
+        console.log('If Error Message:', result.detail);
         return res.status(204).json({
             status: 'success',
             data: null
@@ -140,6 +218,16 @@ exports.deleteMyProductItem = catchAsync(async (req, res, next) => {
     }
     await productItem.destroy();
     await product.destroy();
+    // Delete from AI DB
+    const requestOptions = {
+        method: "DELETE",
+        redirect: "follow",
+    };
+    const response = await fetch(`${process.env.AI_URL}/item/${productItem.id}`, requestOptions);
+    const result = await response.json();
+    console.log({result});
+    console.log('If Error Message:', result.detail);
+
     res.status(204).json({
         status: 'success',
         data: null
@@ -201,5 +289,59 @@ exports.deleteProductImage = catchAsync(async (req, res, next) => {
     res.status(204).json({
         status: 'success',
         data: null
+    });
+});
+
+
+// Ai 
+
+
+exports.getSimilarProductsByText = catchAsync(async (req, res, next) => {
+    const { text } = req.params;
+    let { limit } = req.query * 1;
+    limit = Math.min(limit, 50);
+    console.log(text);
+    let url = `${process.env.AI_URL}/item/text/${text}`;
+    if(limit)
+        url += `?limit=${limit}`;
+    const response = await fetch(url);
+    const result = await response.json();
+    let data = [];
+    for(let i = 0; i < result.ids.length; i++) {
+        const id = result.ids[i] * 1;
+        // if id is not a number         because we made id a number and if it is not a number then it is NaN and NaN !== NaN
+        if(id !== id)
+            continue;
+        let productItem = await db.query(
+            `
+                SELECT product_items.id, products.name, products.description, product_items.quantity, product_items.price
+                FROM product_items
+                JOIN products ON product_items.product_id = products.id
+                WHERE product_items.id = ${id}
+            `
+        );
+        if(productItem[0].length === 0)
+            continue;
+        productItem = productItem[0];
+        const productImages = await db.query(
+            `
+                SELECT images.url AS image_url , images.remote_id AS image_id
+                FROM product_images
+                JOIN images ON product_images.image_id = images.id
+                WHERE product_images.product_item_id = ${id}
+            `
+        );
+        productItem.images = productImages[0];
+
+        let dataItem = {
+            images: productImages[0]
+        };
+        dataItem = {...productItem[0], ...dataItem};
+        data.push(dataItem);
+    }
+    console.log('If Error Message: ', result.detail);
+    res.status(200).json({
+        status: "success",
+        data
     });
 });

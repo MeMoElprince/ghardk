@@ -58,12 +58,13 @@ exports.getAllFavouriteProducts = catchAsync(async (req, res, next) => {
 
     // query with sql language
     let favouriteProducts = await db.query(
-        `SELECT product_items.id, products.name, products.description, product_items.product_id, product_items.vendor_id, product_items.quantity, product_items.price 
-         FROM favourite_products 
-         JOIN product_items ON favourite_products.product_item_id = product_items.id
-         JOIN products ON product_items.product_id = products.id
-         WHERE customer_id = ${customer_id}
-         `
+        `
+            SELECT product_items.id, products.name, products.description, product_items.product_id, product_items.vendor_id, product_items.quantity, product_items.price 
+            FROM favourite_products 
+            JOIN product_items ON favourite_products.product_item_id = product_items.id
+            JOIN products ON product_items.product_id = products.id
+            WHERE customer_id = ${customer_id}
+        `
     );
     favouriteProducts = favouriteProducts[0];
     for(let i = 0; i < favouriteProducts.length; i++) {

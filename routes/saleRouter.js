@@ -6,6 +6,10 @@ const saleController = require('../controllers/saleController');
 const authController = require('../controllers/authController');
 
 
+router.route('/')
+        .get(authController.protect, authController.restrictTo('customer', 'vendor'), saleController.getAllSales);
+
+
 router.route('/checkout')
             .patch(authController.protect, authController.restrictTo('customer'), saleController.checkout);
 

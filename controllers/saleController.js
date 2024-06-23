@@ -15,6 +15,68 @@ const SaleItem = require("../models/saleItemModel");
 const Balance = require("../models/balanceModel");
 const Vendor = require("../models/vendorModel");
 const Review = require('../models/reviewModel');
+const db = require('../config/database');
+
+
+exports.getAllSales = catchAsync(async (req, res, next) => {
+    const { status } = req.query;
+    const customer = await Customer.findOne({ where: { user_id: req.user.id } });
+    const vendor = await Vendor.findOne({ where: { user_id: req.user.id } });
+    if(!customer && !vendor)
+    {
+      return next(new AppError("You can't do this operation", 401));
+    }
+    
+    let sales;
+    if(customer)
+    {
+      sales = await db.query(
+        `
+          SELECT  
+            s.id, 
+            s.total_price, 
+            s.status,  
+            s.address_id,
+            u.first_name AS vendor_first_name, 
+            u.last_name AS vendor_last_name, 
+            u.email AS vendor_email
+          FROM sales s
+          JOIN vendors v ON s.vendor_id = v.id
+          JOIN users u ON v.user_id = u.id
+          WHERE s.customer_id = ${customer.id} and ${(status ? `s.status = '${status}'` : 'true')}
+        `
+      );
+      sales = sales[0];
+    }
+    else
+    {
+      sales = await db.query(
+        `
+          SELECT  
+            s.id, 
+            s.total_price, 
+            s.status, 
+            s.address_id AS customer_address_id,
+            u.first_name as customer_first_name, 
+            u.last_name as customer_last_name, 
+            u.email as customer_email
+          FROM sales s
+          JOIN customers c ON s.customer_id = c.id
+          JOIN users u ON c.user_id = u.id
+          WHERE s.vendor_id = ${vendor.id} and ${(status ? `s.status = '${status}'` : 'true')}
+        `
+      );
+      sales = sales[0];
+    }
+    
+
+    res.status(200).json({
+      status: "success",
+      data: {
+        sales,
+      },
+    });
+});
 
 
 // checkout process has validations before start process and preparation for paymob data required and save the transaction and sale in the database

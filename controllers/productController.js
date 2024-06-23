@@ -228,13 +228,27 @@ exports.getAllMyProductItems = catchAsync(async (req, res, next) => {
     if(!vendor) {
         return next(new AppError('Vendor not found', 404));
     }
-    const productItems = await ProductItem.findAll({
-        where: {
-            vendor_id: vendor.id
-        },
-        limit,
-        offset,
-    });
+    let productItems = await db.query(
+        `
+            SELECT 
+                pi.id, 
+                p.name, 
+                p.description, 
+                pi.quantity, 
+                pi.price,
+                c.name as category_name
+            FROM
+                product_items pi
+            JOIN
+                products p ON pi.product_id = p.id
+            JOIN
+                categories c ON p.category_id = c.id
+            WHERE
+                pi.vendor_id = ${vendor.id} AND ${req.query.category_id ? `p.category_id = ${req.query.category_id}` : true}
+            OFFSET ${offset} LIMIT ${limit}
+        `
+    );
+    productItems = productItems[0];
     res.status(200).json({
         status: 'success',
         data: {

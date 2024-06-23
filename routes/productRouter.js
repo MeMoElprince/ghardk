@@ -27,6 +27,9 @@ router.route('/')
         .post(productController.createProduct)
         .get(productController.getAllProducts);
 
+router.route('/items/:id')
+        .get(productController.getProductItem)
+
 router.route('/:id')
         .get(productController.getProduct)
         .patch(productController.updateProduct)

@@ -11,6 +11,7 @@ const Image = require('../models/imageModel');
 const ProductImage = require('../models/productImageModel');
 const fetch = require('node-fetch');
 const db = require('../config/database');
+const ProductConfiguration = require('../models/productConfigurationModel');
 
 const imageKitConfig = new imageKit({
     publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
@@ -49,6 +50,86 @@ exports.getProduct = crudFactory.getOne(Product);
 exports.updateProduct = crudFactory.updateOne(Product, 'name', 'description', 'category_id');
 exports.deleteProduct = crudFactory.deleteOne(Product);
 
+
+exports.getProductItem = catchAsync(async (req, res, next) => {
+    const id = req.params.id;
+
+    let productItem = await db.query(
+        `
+            SELECT 
+                pi.id, 
+                p.name, 
+                p.description, 
+                pi.quantity, 
+                pi.price,
+                u.first_name as vendor_first_name,
+                u.last_name as vendor_last_name,
+                u.email as vendor_email,
+                i.url as vendor_image_url,
+                i.remote_id as vendor_image_id
+            FROM 
+                product_items pi
+            JOIN 
+                products p ON pi.product_id = p.id
+            JOIN 
+                vendors v ON pi.vendor_id = v.id
+            JOIN
+                users u ON v.user_id = u.id
+            JOIN 
+                images i ON u.image_id = i.id
+            WHERE pi.id = ${id}
+        `
+    );
+
+    if(productItem[0].length === 0) {
+        return next(new AppError('Product Item not found', 404));
+    }
+    productItem = productItem[0][0];
+
+    let productImages = await db.query(
+        `
+            SELECT 
+                i.url as image_url,
+                i.remote_id as image_id
+            FROM 
+                product_images pi
+            JOIN 
+                images i ON pi.image_id = i.id
+            WHERE pi.product_item_id = ${id}
+        `
+    );
+    productItem.images = productImages[0];
+
+
+    let productConfigurations = await db.query(
+        `
+            SELECT
+                v.name,
+                vo.value
+            FROM 
+                product_configurations pc
+            JOIN
+                variation_options vo ON pc.variation_option_id = vo.id
+            JOIN
+                variations v ON vo.variation_id = v.id
+            WHERE 
+                pc.product_item_id = ${id}
+        `
+    );
+    productItem.configurations = productConfigurations[0];
+    // is favourite
+
+
+
+
+
+    res.status(200).json({
+        status: 'success',
+        data: {
+            productItem
+        }
+    });
+});
 
 
 

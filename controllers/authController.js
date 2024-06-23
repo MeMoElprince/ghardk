@@ -388,3 +388,25 @@ exports.restrictTo = (...roles) => {
         next();
     }
 }
+
+
+
+
+
+
+
+
+exports.changePassword = catchAsync(async (req, res, next) => {
+    if(!req.body.current_password || !req.body.new_password || !req.body.new_password_confirm)
+        return next(new AppError('You must provide current password, new password and new passwordConfirm together!!', 400));
+    const user = await User.findByPk(req.user.id);
+    if(!await user.validatePassword(req.body.current_password))
+        return next(new AppError('Current password is incorrect!!', 401));
+    user.password = req.body.new_password;
+    user.password_confirm = req.body.new_password_confirm;
+    await user.save();
+    res.status(200).json({
+        status: 'success',
+        message: 'Password changed successfully.'
+    });
+});

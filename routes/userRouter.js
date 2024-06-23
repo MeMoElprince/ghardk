@@ -15,6 +15,9 @@ router.route('/verify-token').post(authController.sendVerificationEmail);
 
 router.get('/getMe', authController.protect, userController.getMe);
 
+router.route('/change-password')
+        .patch(authController.protect, authController.changePassword);
+
 router.route('/')
         .post(userController.createUser)
         .get(userController.getAllUsers);

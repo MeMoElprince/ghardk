@@ -51,6 +51,38 @@ exports.updateProduct = crudFactory.updateOne(Product, 'name', 'description', 'c
 exports.deleteProduct = crudFactory.deleteOne(Product);
 
 
+
+exports.getAllProductsByVendor = catchAsync(async (req, res, next) => {
+    const { vendorId } = req.params;
+    const products = await db.query(
+        `
+            SELECT 
+                pi.id, 
+                p.name, 
+                p.description, 
+                pi.quantity, 
+                pi.price,
+                c.name as category_name
+            FROM 
+                product_items pi
+            JOIN 
+                products p ON pi.product_id = p.id
+            JOIN
+                categories c ON p.category_id = c.id
+            WHERE 
+                pi.vendor_id = ${vendorId} AND ${req.query.category_id ? `p.category_id = ${req.query.category_id}` : true}
+        `
+    );
+    res.status(200).json({
+        status: 'success',
+        data: {
+            count: products[0].length,
+            products: products[0]
+        }
+    });
+});
+
+
 exports.getProductItem = catchAsync(async (req, res, next) => {
     const id = req.params.id;
 
@@ -155,23 +187,28 @@ exports.createNewProductItem = catchAsync(async (req, res, next) => {
 
 
     // Add to AI DB
-    const myHeaders = new Headers();
-    myHeaders.append("Content-Type", "application/json");
-    const aiData = {
-        id: `${productItem.id}`,
-        name: newProduct.name,
-        description: newProduct.description
-    };
-    const raw = JSON.stringify(aiData);
-    const requestOptions = {
-        method: "POST",
-        headers: myHeaders,
-        body: raw,
-        redirect: "follow",
-    };
-    const response = await fetch(`${process.env.AI_URL}/item`, requestOptions);
-    const result = await response.json();
-    console.log(result);
+    try {
+
+        const myHeaders = new Headers();
+        myHeaders.append("Content-Type", "application/json");
+        const aiData = {
+            id: `${productItem.id}`,
+            name: newProduct.name,
+            description: newProduct.description
+        };
+        const raw = JSON.stringify(aiData);
+        const requestOptions = {
+            method: "POST",
+            headers: myHeaders,
+            body: raw,
+            redirect: "follow",
+        };
+        const response = await fetch(`${process.env.AI_URL}/item`, requestOptions);
+        const result = await response.json();
+        console.log(result);
+    } catch (err) {
+        console.log('Error happened while adding product to AI :', err.message);
+    }
 
 
     res.status(201).json({
@@ -256,6 +293,8 @@ exports.updateMyProductItem = catchAsync(async (req, res, next) => {
         }
     });
 });
+
+
 
 exports.deleteMyProductItem = catchAsync(async (req, res, next) => {
     const productItem = await ProductItem.findByPk(req.params.id);

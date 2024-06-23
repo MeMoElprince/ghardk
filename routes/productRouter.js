@@ -27,6 +27,9 @@ router.route('/')
         .post(productController.createProduct)
         .get(productController.getAllProducts);
 
+router.route('/vendors/:vendorId')
+        .get(productController.getAllProductsByVendor);
+
 router.route('/items/:id')
         .get(productController.getProductItem)
 

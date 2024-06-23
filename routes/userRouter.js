@@ -14,6 +14,7 @@ router.route('/verify-token').post(authController.sendVerificationEmail);
 
 
 router.get('/getMe', authController.protect, userController.getMe);
+router.patch('/updateMe', authController.protect, authController.uploadImage, authController.uploadToImageKit, userController.updateMe);
 
 router.route('/change-password')
         .patch(authController.protect, authController.changePassword);

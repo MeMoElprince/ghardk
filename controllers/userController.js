@@ -3,6 +3,10 @@ const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
 const Email = require('../utils/emailHandler');
 const color = require('../utils/colors');
+const {imageUpload} = require('../utils/multer');
+const imageKit = require('imagekit');
+const Image = require('../models/imageModel');
+const db = require('../config/database');
 
 const filterObj = (obj, ...allowedFields) => {
     const newObj = {};
@@ -11,6 +15,26 @@ const filterObj = (obj, ...allowedFields) => {
     });
     return newObj;
 }
+
+
+
+const imageKitConfig = new imageKit({
+    publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
+    privateKey: process.env.IMAGEKIT_PRIVATE_KEY,
+    urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT
+});
+
+exports.uploadImage = imageUpload.single('image');
+
+exports.uploadToImageKit = catchAsync(async (req, res, next) => {
+    if(!req.file)
+        return next();
+    req.body.image = req.file;
+    next();
+});
+
+
+
 
 exports.createUser = catchAsync(async (req, res, next) => {
 
@@ -110,12 +134,74 @@ exports.deleteUser = catchAsync(async (req, res, next) => {
 
 exports.getMe = catchAsync(async (req, res, next) => {
     // get the user from the database with filtered fields 
-    const user = await User.findByPk(req.user.id, {
-        attributes: {
-            exclude: ['password', 'password_confirm', 'secret_token', 'secret_token_expires_at']
-        }
-    })
+    let user = await db.query(
+        `
+            SELECT
+                u.id,
+                u.first_name,
+                u.last_name,
+                u.user_name,
+                u.email,
+                u.dob,
+                u.role,
+                u.gender,
+                u.active,
+                u.language_preference,
+                i.url as image_url,
+                i.remote_id as image_id
+            FROM
+                users u
+            JOIN
+                images i ON u.image_id = i.id
+            WHERE   
+                u.id = ${req.user.id};
+        `
+    );
+    if(!user) {
+        return next(new AppError('No user found with that ID', 404));
+    }
 
+    user = user[0][0];
+
+
+    res.status(200).json({
+        status: 'success',
+        data: {
+            user
+        }
+    });
+});
+
+exports.updateMe = catchAsync(async (req, res, next) => {
+    const data = filterObj(req.body, 'first_name', 'last_name', 'dob', 'gender');
+    const user = await User.findByPk(req.user.id);
+    const currentData = {};
+    Object.keys(data).forEach(el => {
+        currentData[el] = user[el];
+        user[el] = data[el];
+    });
+    await user.save();
+    if(req.body.image) {
+        try {
+            const image = await imageKitConfig.upload({
+                file: req.body.image.buffer.toString('base64'),
+                fileName: req.body.image.originalname,
+                folder: '/users'
+            });
+            const currentImage = await Image.findByPk(user.image_id);
+            if(currentImage.remote_id)
+                await imageKitConfig.deleteFile(currentImage.remote_id);
+            currentImage.url = image.url;
+            currentImage.remote_id = image.fileId;
+            await currentImage.save();
+        } catch(err) {
+            Object.keys(currentData).forEach(el => {
+                user[el] = currentData[el];
+            });
+            await user.save();
+            return next(new AppError('Error editing image', 500));
+        }
+    }
     res.status(200).json({
         status: 'success',
         data: {

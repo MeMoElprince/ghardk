@@ -4,6 +4,7 @@ const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
 const Sequelize = require("sequelize");
 const color = require('../utils/colors');
+const db = require('../config/database');
 
 const filterObj = (obj, ...allowedFields) => {
     const newObj = {};
@@ -113,11 +114,30 @@ exports.updateAddress = catchAsync(async (req, res, next) => {
 });
 
 exports.getAllAddresses = catchAsync(async (req, res, next) => {
-    const userAddresses = await UserAddress.findAll({
-        where: {
-            user_id: req.user.id
-        },
-    });
+    // const userAddresses = await UserAddress.findAll({
+    //     where: {
+    //         user_id: req.user.id
+    //     },
+    // });
+    let userAddresses = await db.query(
+        `
+            SELECT 
+                user_addresses.id,
+                user_addresses.is_default, 
+                addresses.street_name, 
+                addresses.city, 
+                addresses.description, 
+                addresses.postal_code, 
+                countries.name as country
+            FROM user_addresses
+            JOIN addresses ON user_addresses.address_id = addresses.id
+            JOIN countries ON addresses.country_id = countries.id
+            WHERE user_addresses.user_id = ${req.user.id}
+        `
+    );
+
+    userAddresses = userAddresses[0];
+
     res.status(200).json({
         status: 'success',
         data: {

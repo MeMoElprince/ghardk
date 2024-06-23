@@ -36,7 +36,8 @@ UserAddress.beforeSave(async (userAddress) => {
                 id: {
                     [Sequelize.Op.ne]: userAddress.id
                 },
-                is_default: true
+                is_default: true,
+                user_id: userAddress.user_id
             }
         });
         if(userAddresse){
@@ -52,7 +53,8 @@ UserAddress.beforeSave(async (userAddress) => {
                   // not equal to the current id
                     [Sequelize.Op.ne]: userAddress.id
                 },
-                is_default: true
+                is_default: true,
+                user_id: userAddress.user_id
             }
         });
         if(!userAddresse){

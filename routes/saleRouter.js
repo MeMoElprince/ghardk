@@ -17,6 +17,10 @@ router.route('/checkout')
 router.route('/checkout-callback')
             .post(saleController.checkoutCallback);
 
+
+router.route('/:id')
+        .get(authController.protect, authController.restrictTo('customer', 'vendor'), saleController.getSale);
+
 router.route('/:id/cancel-sale')
             .patch(authController.protect, saleController.cancelSale);
 

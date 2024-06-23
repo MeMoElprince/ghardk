@@ -136,6 +136,65 @@ exports.getMyPendingSales = catchAsync(async (req, res, next) => {
   });
 });
 
+
+exports.getSale = catchAsync(async (req, res, next) => {
+
+    const id = req.params.id;
+
+    let sale = await db.query(
+      `
+        SELECT
+          s.id,
+          s.total_price,
+          s.status,
+          s.address_id,
+          u.first_name as customer_first_name,
+          u.last_name as customer_last_name,
+          u.email as customer_email,
+          u2.first_name as vendor_first_name,
+          u2.last_name as vendor_last_name,
+          u2.email as vendor_email,
+          cn.name as country_name,
+          a.city,
+          a.street_name,
+          a.postal_code,
+          a.description as address_description,
+          t.status as transaction_status
+        FROM 
+          sales s
+        JOIN 
+          customers c ON s.customer_id = c.id
+        JOIN 
+          users u ON c.user_id = u.id
+        JOIN 
+          vendors v ON s.vendor_id = v.id
+        JOIN 
+          users u2 ON v.user_id = u2.id
+        JOIN 
+          addresses a ON s.address_id = a.id
+        JOIN 
+          countries cn ON a.country_id = cn.id
+        JOIN 
+          transactions t ON s.transaction_id = t.id
+        WHERE s.id = ${id}
+      `
+    );
+
+    sale = sale[0][0];
+
+    if(!sale)
+    {
+      return next(new AppError("Sale not found", 404));
+    }
+
+    res.status(200).json({
+      status: "success",
+      sale
+    });
+
+});
+
+
 // checkout process has validations before start process and preparation for paymob data required and save the transaction and sale in the database
 // and some other process for us
 exports.checkout = catchAsync(async (req, res, next) => {

@@ -149,6 +149,7 @@ exports.getMyCart = catchAsync(async (req, res, next) => {
         `
     );
     cartProducts = cartProducts[0];
+    let checkout_price = 0;
     for(let i = 0; i < cartProducts.length; i++) {
         let productImages = await db.query(
             `
@@ -163,12 +164,17 @@ exports.getMyCart = catchAsync(async (req, res, next) => {
                     pi.product_item_id = ${cartProducts[i].product_item_id}
             `
         );
+        checkout_price = checkout_price * 1.0 + cartProducts[i].total_price * 1.0;
         productImages = productImages[0];
         cartProducts[i].images = productImages;
     }
     res.status(200).json({
         status: 'success',
-        cartProducts
+        data: {
+            count: cartProducts.length,
+            checkout_price,
+            cartProducts
+        }
     });
 });
 

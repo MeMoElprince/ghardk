@@ -7,8 +7,9 @@ const authController = require('../controllers/authController');
 
 
 router.route('/')
-        .get(authController.protect, authController.restrictTo('customer', 'vendor'), saleController.getAllSales);
-
+        .get(authController.protect, authController.restrictTo('customer', 'vendor'), saleController.getAllMySales);
+router.route('/pending')
+        .get(authController.protect, authController.restrictTo('customer', 'vendor'), saleController.getMyPendingSales);
 
 router.route('/checkout')
             .patch(authController.protect, authController.restrictTo('customer'), saleController.checkout);

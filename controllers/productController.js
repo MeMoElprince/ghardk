@@ -51,6 +51,66 @@ exports.updateProduct = crudFactory.updateOne(Product, 'name', 'description', 'c
 exports.deleteProduct = crudFactory.deleteOne(Product);
 
 
+exports.getPopularProducts = catchAsync(async (req, res, next) => {
+    
+    let products = await db.query(
+        `
+            SELECT 
+                pi.id, 
+                p.name, 
+                p.description, 
+                pi.quantity, 
+                pi.price,
+                c.name as category_name,
+                COUNT(si.product_item_id) as sales_count
+            FROM 
+                product_items pi
+            JOIN 
+                sales_items si ON pi.id = si.product_item_id
+            JOIN 
+                products p ON pi.product_id = p.id
+            JOIN
+                categories c ON p.category_id = c.id
+            GROUP BY 
+                pi.id, 
+                p.name, 
+                p.description, 
+                pi.quantity, 
+                pi.price,
+                c.name
+            ORDER BY 
+                sales_count DESC
+            LIMIT 100
+        `
+    );
+
+    for(let i = 0; i < products[0].length; i++) {
+        const productItem = products[0][i];
+        const productImages = await db.query(
+            `
+                SELECT 
+                    i.url as image_url,
+                    i.remote_id as image_id
+                FROM 
+                    product_images pi
+                JOIN 
+                    images i ON pi.image_id = i.id
+                WHERE 
+                    pi.product_item_id = ${productItem.id}
+            `
+        );
+        productItem.images = productImages[0];
+    }
+
+    res.status(200).json({
+        status: 'success',
+        data: {
+            count: products[0].length,
+            products: products[0]
+        }
+    });
+});
+
 
 exports.getAllProductsByVendor = catchAsync(async (req, res, next) => {
     const { vendorId } = req.params;

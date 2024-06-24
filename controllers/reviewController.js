@@ -3,7 +3,7 @@ const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
 const crudFactory = require('./crudFactory');
 const Customer = require('../models/customerModel');
-
+const db = require('../config/database');
 // customer get this review 
 
 
@@ -39,17 +39,40 @@ exports.getProductReviews = catchAsync(async (req, res, next) => {
     if(!itemId)
         return next(new AppError('You must provide an ID of product item', 400));
 
-    const reviews = await Review.findAll({
-        where: {
-            // 
-            product_item_id: itemId,
-            status: 'approved'
-        }
-    });
+    let reviews = await db.query(
+        `
+            SELECT 
+                r.id,
+                r.rating,
+                r.comment,
+                r.status,
+                r."createdAt",
+                r."updatedAt",
+                u.first_name as customer_first_name,
+                u.last_name as customer_last_name,
+                u.email as customer_email,
+                i.url as customer_image_url,
+                i.remote_id as customer_image_id
+            FROM
+                reviews r
+            JOIN
+                customers c ON r.customer_id = c.id
+            JOIN
+                users u ON c.user_id = u.id
+            JOIN
+                images i ON u.image_id = i.id
+            WHERE
+                r.product_item_id = ${itemId} AND r.status = 'approved'
+        `
+    );  
+    reviews = reviews[0];
     // populate customer don't forget
     return res.status(200).json({
         status: "success",
-        reviews
+        data: {
+            count: reviews.length,
+            reviews
+        }
     });
     
 });
@@ -116,7 +139,7 @@ exports.createReview = catchAsync(async (req, res, next) => {
 });
 
 exports.rejectReview = catchAsync(async (req, res, next) => {
-    const customer = await Customer.fineOne({
+    const customer = await Customer.findOne({
         where: {
             user_id: req.user.id
         }

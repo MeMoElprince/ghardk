@@ -27,6 +27,10 @@ router.route('/')
         .post(productController.createProduct)
         .get(productController.getAllProducts);
 
+
+router.route('/popular')
+        .get(productController.getPopularProducts);
+
 router.route('/vendors/:vendorId')
         .get(productController.getAllProductsByVendor);
 

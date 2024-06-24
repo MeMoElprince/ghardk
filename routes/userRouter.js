@@ -19,6 +19,9 @@ router.patch('/updateMe', authController.protect, authController.uploadImage, au
 router.route('/change-password')
         .patch(authController.protect, authController.changePassword);
 
+router.route('/top-rated-sellers')
+        .get(userController.getTopRatedVendors);
+
 router.route('/')
         .get(userController.getAllUsers)
         .post(authController.protect, authController.restrictTo('admin'), userController.createUser);

@@ -131,6 +131,30 @@ exports.getUser = catchAsync(async (req, res, next) => {
         return next(new AppError('No user found with that ID', 404));
     }
 
+    if(isVendor)
+    {
+        const categories = await db.query(
+            `
+                SELECT
+                    c.id,
+                    c.name
+                FROM
+                    categories c
+                JOIN
+                    products p ON c.id = p.category_id
+                JOIN 
+                    product_items pi ON p.id = pi.product_id
+                JOIN 
+                    vendors v ON pi.vendor_id = v.id
+                WHERE
+                    v.user_id = ${req.params.id}    
+                GROUP BY
+                    c.id;                
+            `
+        );    
+        user.categories = categories[0];
+    }
+
     res.status(200).json({
         status: 'success',
         data: {
@@ -140,6 +164,47 @@ exports.getUser = catchAsync(async (req, res, next) => {
 
 
 
+});
+
+
+exports.getTopRatedVendors = catchAsync(async (req, res, next) => {
+    console.log(color.BgBlue, ' I am Here::---------------- ', color.Reset);
+    const vendors = await db.query(
+        `
+            SELECT
+                u.id,
+                u.first_name,
+                u.last_name,
+                u.user_name,
+                u.email,
+                u.dob,
+                u.role,
+                u.active,
+                u.gender,
+                i.url as image_url,
+                i.remote_id as image_id,
+                v.description,
+                v.rating,
+                v.rating_count
+            FROM
+                users u
+            JOIN
+                images i ON u.image_id = i.id
+            JOIN
+                vendors v ON u.id = v.user_id
+            ORDER BY
+                v.rating DESC
+            LIMIT
+                20;
+        `
+    );
+
+    return res.status(200).json({
+        status: 'success',
+        data: {
+            vendors: vendors[0]
+        }
+    });
 });
 
 // update user by id

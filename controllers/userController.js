@@ -157,7 +157,9 @@ exports.getMe = catchAsync(async (req, res, next) => {
                     i.url as image_url,
                     i.remote_id as image_id,
                     v.national_id,
-                    v.description
+                    v.description,
+                    v.rating,
+                    v.rating_count
                 FROM
                     users u
                 JOIN

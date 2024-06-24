@@ -88,16 +88,58 @@ exports.getAllUsers = catchAsync(async (req, res, next) => {
 
 // get user by id
 exports.getUser = catchAsync(async (req, res, next) => {
-    const user = await User.findByPk(req.params.id);
+    
+    let isVendor = false;
+
+    const vendor = await User.findByPk(req.params.id);
+    if(!vendor) {
+        return next(new AppError('No user found with that ID', 404));
+    }
+    if(vendor.role === 'vendor')
+    {
+        isVendor = true;
+    }
+
+
+    let user = await db.query(
+        `
+            SELECT
+                u.id,
+                u.first_name,
+                u.last_name,
+                u.user_name,
+                u.email,
+                u.dob,
+                u.role,
+                u.active,
+                u.gender,
+                i.url as image_url,
+                i.remote_id as image_id ${isVendor ? `, v.description, v.national_id, v.rating, v.rating_count` : ''}
+            FROM
+                users u
+            JOIN
+                images i ON u.image_id = i.id 
+            ${isVendor ? `JOIN vendors v ON u.id = v.user_id` : ''}
+            WHERE
+                u.id = ${req.params.id};            
+        `
+    );
+
+    user = user[0][0];
+
     if(!user) {
         return next(new AppError('No user found with that ID', 404));
     }
+
     res.status(200).json({
         status: 'success',
         data: {
             user
         }
     });
+
+
+
 });
 
 // update user by id

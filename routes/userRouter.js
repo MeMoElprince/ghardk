@@ -20,12 +20,12 @@ router.route('/change-password')
         .patch(authController.protect, authController.changePassword);
 
 router.route('/')
-        .post(userController.createUser)
-        .get(userController.getAllUsers);
+        .get(userController.getAllUsers)
+        .post(authController.protect, authController.restrictTo('admin'), userController.createUser);
 
 router.route('/:id')
-        .get(authController.protect, userController.getUser)
-        .patch(userController.updateUser)
-        .delete(userController.deleteUser);
+        .get(userController.getUser)
+        .patch(authController.protect, authController.restrictTo('admin'), userController.updateUser)
+        .delete(authController.protect, authController.restrictTo('admin'), userController.deleteUser);
 
 module.exports = router;

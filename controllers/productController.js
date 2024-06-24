@@ -2,6 +2,7 @@ const Product = require('../models/productModel');
 const ProductItem = require('../models/productItemModel');
 const Vendor = require('../models/vendorModel');
 const color = require('../utils/colors');
+const User = require('../models/userModel');
 const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
 const crudFactory = require('./crudFactory');
@@ -116,6 +117,16 @@ exports.getPopularProducts = catchAsync(async (req, res, next) => {
 
 exports.getAllProductsByVendor = catchAsync(async (req, res, next) => {
     const { vendorId } = req.params;
+
+    const vendor = await Vendor.findOne({
+        where: {
+            user_id: vendorId
+        }
+    });
+    if(!vendor) {
+        return next(new AppError('Vendor not found', 404));
+    }
+
     const products = await db.query(
         `
             SELECT 
@@ -134,7 +145,7 @@ exports.getAllProductsByVendor = catchAsync(async (req, res, next) => {
             JOIN
                 categories c ON p.category_id = c.id
             WHERE 
-                pi.vendor_id = ${vendorId} AND ${req.query.category_id ? `p.category_id = ${req.query.category_id}` : true}
+                pi.vendor_id = ${vendor.id} AND ${req.query.category_id ? `p.category_id = ${req.query.category_id}` : true}
         `
     );
     res.status(200).json({

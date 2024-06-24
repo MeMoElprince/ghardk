@@ -7,6 +7,9 @@ const {imageUpload} = require('../utils/multer');
 const imageKit = require('imagekit');
 const Image = require('../models/imageModel');
 const db = require('../config/database');
+const { where } = require('sequelize');
+const Vendor = require('../models/vendorModel');
+
 
 const filterObj = (obj, ...allowedFields) => {
     const newObj = {};
@@ -134,29 +137,63 @@ exports.deleteUser = catchAsync(async (req, res, next) => {
 
 exports.getMe = catchAsync(async (req, res, next) => {
     // get the user from the database with filtered fields 
-    let user = await db.query(
-        `
-            SELECT
-                u.id,
-                u.first_name,
-                u.last_name,
-                u.user_name,
-                u.email,
-                u.dob,
-                u.role,
-                u.gender,
-                u.active,
-                u.language_preference,
-                i.url as image_url,
-                i.remote_id as image_id
-            FROM
-                users u
-            JOIN
-                images i ON u.image_id = i.id
-            WHERE   
-                u.id = ${req.user.id};
-        `
-    );
+    let user;
+    if(req.user.role === 'vendor')
+    {
+
+        user = await db.query(
+            `
+                SELECT
+                    u.id,
+                    u.first_name,
+                    u.last_name,
+                    u.user_name,
+                    u.email,
+                    u.dob,
+                    u.role,
+                    u.gender,
+                    u.active,
+                    u.language_preference,
+                    i.url as image_url,
+                    i.remote_id as image_id,
+                    v.national_id,
+                    v.description
+                FROM
+                    users u
+                JOIN
+                    images i ON u.image_id = i.id
+                JOIN
+                    vendors v ON u.id = v.user_id
+                WHERE   
+                    u.id = ${req.user.id};
+            `
+        );
+    }
+    else{
+        user = await db.query(
+            `
+                SELECT
+                    u.id,
+                    u.first_name,
+                    u.last_name,
+                    u.user_name,
+                    u.email,
+                    u.dob,
+                    u.role,
+                    u.gender,
+                    u.active,
+                    u.language_preference,
+                    i.url as image_url,
+                    i.remote_id as image_id
+                FROM
+                    users u
+                JOIN
+                    images i ON u.image_id = i.id
+                WHERE   
+                    u.id = ${req.user.id};
+            `
+        );
+    }
     if(!user) {
         return next(new AppError('No user found with that ID', 404));
     }
@@ -174,13 +211,46 @@ exports.getMe = catchAsync(async (req, res, next) => {
 
 exports.updateMe = catchAsync(async (req, res, next) => {
     const data = filterObj(req.body, 'first_name', 'last_name', 'dob', 'gender');
-    const user = await User.findByPk(req.user.id);
+    const { user } = req;
     const currentData = {};
     Object.keys(data).forEach(el => {
         currentData[el] = user[el];
         user[el] = data[el];
     });
-    await user.save();
+    let vendorData;
+    let currentVendorData = {};
+    let vendor;
+    if(user.role === 'vendor')
+    {
+        vendor = await Vendor.findOne({
+            where: {
+                user_id: req.user.id
+            }   
+        });
+        if(!vendor)
+        {
+            return next(new AppError('Vendor not found', 404));   
+        }
+        vendorData = filterObj(req.body, 'national_id', 'description');
+        Object.keys(vendorData).forEach(el => {
+            currentVendorData[el] = vendor[el];
+            vendor[el] = vendorData[el];
+        });
+        await vendor.save();
+    }
+    try
+    {
+        await user.save();
+    } catch (err) {
+        if(user.role === 'vendor')
+        {
+            Object.keys(currentVendorData).forEach(el => {
+                vendor[el] = currentVendorData[el];
+            });
+            await vendor.save();
+        }
+        return next(new AppError(err.message, 400));
+    }
     if(req.body.image) {
         try {
             const image = await imageKitConfig.upload({
@@ -198,10 +268,19 @@ exports.updateMe = catchAsync(async (req, res, next) => {
             Object.keys(currentData).forEach(el => {
                 user[el] = currentData[el];
             });
+            if(user.role === 'vendor')
+            {
+                Object.keys(currentVendorData).forEach(el => {
+                    vendor[el] = currentVendorData[el];
+                });
+                await vendor.save();
+            }
             await user.save();
             return next(new AppError('Error editing image', 500));
         }
     }
+    user.password = undefined;
+    user.password_confirm = undefined;
     res.status(200).json({
         status: 'success',
         data: {

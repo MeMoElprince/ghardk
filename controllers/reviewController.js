@@ -4,6 +4,9 @@ const catchAsync = require('../utils/catchAsync');
 const crudFactory = require('./crudFactory');
 const Customer = require('../models/customerModel');
 const db = require('../config/database');
+const Vendor = require('../models/vendorModel');
+const ProductItem = require('../models/productItemModel');
+
 // customer get this review 
 
 
@@ -133,6 +136,30 @@ exports.createReview = catchAsync(async (req, res, next) => {
     }
     review.status = 'approved';
     await review.save();
+    
+    // update rating and rating_count in product item
+    const productItem = await Product.findOne({
+        where: {
+            id: review.product_item_id
+        }
+    });
+    if(!productItem) {
+        return next(new AppError('Product item not found', 404));
+    }
+    productItem.rating = (productItem.rating *1.0 * productItem.rating_count*1.0 + review.rating * 1.0) / (productItem.rating_count * 1.0 + 1);
+    productItem.rating_count = productItem.rating_count * 1 + 1;
+    await productItem.save();
+    const vendor = await Vendor.findOne({
+        where: {
+            id: productItem.vendor_id
+        }
+    });
+    if(!vendor) {
+        return next(new AppError('Vendor not found', 404));
+    }
+    vendor.rating = (vendor.rating * 1.0 * vendor.rating_count * 1.0 + review.rating * 1.0) / (vendor.rating_count * 1.0 + 1);
+    vendor.rating_count = vendor.rating_count * 1 + 1;
+    await vendor.save();
     return res.status(201).json({
         status: 'success',
         data: {

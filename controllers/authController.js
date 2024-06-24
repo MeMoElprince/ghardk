@@ -85,7 +85,7 @@ exports.signUp = catchAsync(async (req, res, next) => {
     }
     console.log(color.FgGreen, 'User created successfully.', color.Reset);
     if(data.role === 'vendor') {
-        const newData = filterObj(req.body, 'national_id');
+        const newData = filterObj(req.body, 'national_id', 'description');
         newData.user_id = user.id;
         // create vendor
         console.log(color.FgCyan, 'Creating Vendor...', color.Reset);

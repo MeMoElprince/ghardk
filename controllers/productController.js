@@ -340,24 +340,28 @@ exports.updateMyProductItem = catchAsync(async (req, res, next) => {
     }   
     
     // Update AI DB
-    if(data.name || data.description) {
-        const myHeaders = new Headers();
-        myHeaders.append("Content-Type", "application/json");
-        const aiData = {
-            name: data.name,
-            description: data.description
-        };
-        const raw = JSON.stringify(aiData);
-        const requestOptions = {
-            method: "PATCH",
-            headers: myHeaders,
-            body: raw,
-            redirect: "follow",
-        };
-        const response = await fetch(`${process.env.AI_URL}/item/${productItem.id}`, requestOptions);
-        const result = await response.json();
-        console.log({result});
-        console.log('If Error Message:', result.detail);
+    try {
+        if(data.name || data.description) {
+            const myHeaders = new Headers();
+            myHeaders.append("Content-Type", "application/json");
+            const aiData = {
+                name: data.name,
+                description: data.description
+            };
+            const raw = JSON.stringify(aiData);
+            const requestOptions = {
+                method: "PATCH",
+                headers: myHeaders,
+                body: raw,
+                redirect: "follow",
+            };
+            const response = await fetch(`${process.env.AI_URL}/item/${productItem.id}`, requestOptions);
+            const result = await response.json();
+            console.log({result});
+            console.log('If Error Message:', result.detail);
+        }
+    } catch (err) {
+        console.log('Error happened while updating product in AI :', err.message);
     }
 
     res.status(200).json({
@@ -413,14 +417,18 @@ exports.deleteMyProductItem = catchAsync(async (req, res, next) => {
     await productItem.destroy();
     await product.destroy();
     // Delete from AI DB
-    const requestOptions = {
-        method: "DELETE",
-        redirect: "follow",
-    };
-    const response = await fetch(`${process.env.AI_URL}/item/${productItem.id}`, requestOptions);
-    const result = await response.json();
-    console.log({result});
-    console.log('If Error Message:', result.detail);
+    try {
+        const requestOptions = {
+            method: "DELETE",
+            redirect: "follow",
+        };
+        const response = await fetch(`${process.env.AI_URL}/item/${productItem.id}`, requestOptions);
+        const result = await response.json();
+        console.log({result});
+        console.log('If Error Message:', result.detail);
+    } catch(err) {
+        console.log('Error happened while deleting product from AI :', err.message);
+    }
 
     res.status(204).json({
         status: 'success',

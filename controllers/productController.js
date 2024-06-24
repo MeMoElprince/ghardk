@@ -61,6 +61,8 @@ exports.getPopularProducts = catchAsync(async (req, res, next) => {
                 p.description, 
                 pi.quantity, 
                 pi.price,
+                pi.rating,
+                pi.rating_count,
                 c.name as category_name,
                 COUNT(si.product_item_id) as sales_count
             FROM 
@@ -122,6 +124,8 @@ exports.getAllProductsByVendor = catchAsync(async (req, res, next) => {
                 p.description, 
                 pi.quantity, 
                 pi.price,
+                pi.rating,
+                pi.rating_count,
                 c.name as category_name
             FROM 
                 product_items pi
@@ -154,6 +158,8 @@ exports.getProductItem = catchAsync(async (req, res, next) => {
                 p.description, 
                 pi.quantity, 
                 pi.price,
+                pi.rating,
+                pi.rating_count,
                 u.first_name as vendor_first_name,
                 u.last_name as vendor_last_name,
                 u.email as vendor_email,
@@ -296,6 +302,8 @@ exports.getAllMyProductItems = catchAsync(async (req, res, next) => {
                 p.description, 
                 pi.quantity, 
                 pi.price,
+                pi.rating,
+                pi.rating_count,
                 c.name as category_name
             FROM
                 product_items pi

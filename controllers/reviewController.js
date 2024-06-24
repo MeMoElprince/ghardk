@@ -124,6 +124,9 @@ exports.createReview = catchAsync(async (req, res, next) => {
     if(!data.rating) {
         return next(new AppError('Rating is required', 400));
     }
+    if(data.rating < 1 || data.rating > 5) {
+        return next(new AppError('Rating must be between 1 and 5', 400));
+    }
     review.rating = data.rating;
     if(data.comment) {
         review.comment = data.comment;

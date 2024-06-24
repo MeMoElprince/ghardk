@@ -17,7 +17,18 @@ const Vendor = db.define("vendors", {
   national_id: {
     type: Sequelize.STRING,
     allowNull: false,
-  }
+  },
+  rating: {
+    type: Sequelize.FLOAT,
+    defaultValue: 0,
+  },
+  rating_count: {
+    type: Sequelize.INTEGER,
+    defaultValue: 0,
+  },
+  description: {
+    type: Sequelize.STRING,
+  },
 });
 
 module.exports = Vendor;

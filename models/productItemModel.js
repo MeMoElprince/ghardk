@@ -26,6 +26,14 @@ const ProductItem = db.define("product_items", {
     type: Sequelize.DECIMAL(10, 2),
     allowNull: false,
   },
+  rating: {
+    type: Sequelize.FLOAT,
+    defaultValue: 0,
+  },
+  rating_count: {
+    type: Sequelize.INTEGER,
+    defaultValue: 0,
+  },
 });
 
 ProductItem.associate = (models) => {

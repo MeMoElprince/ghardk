@@ -566,3 +566,67 @@ exports.getSimilarProductsByText = catchAsync(async (req, res, next) => {
         data
     });
 });
+
+
+
+exports.getExploreProducts = catchAsync(async (req, res, next) => {
+    
+    // ai callback
+    const sortQuery = req.query.sort || 'updatedAt';
+    const sortType = req.query.sortType || 'DESC';
+
+    let productItems = await db.query(
+        `
+            SELECT 
+                pi.id, 
+                p.name, 
+                p.description, 
+                pi.quantity, 
+                pi.price,
+                pi.rating,
+                pi.rating_count,
+                c.name as category_name,
+                c.id as category_id,
+                pi."createdAt",
+                pi."updatedAt"
+            FROM 
+                product_items pi
+            JOIN 
+                products p ON pi.product_id = p.id
+            JOIN
+                categories c ON p.category_id = c.id
+            WHERE 
+                ${req.query.category_id ? `p.category_id = ${req.query.category_id}` : true}
+            ORDER BY 
+                pi."${sortQuery}" ${sortType}
+            LIMIT 100
+        `
+    );
+
+    for(let i = 0; i < productItems[0].length; i++) {
+        const productItem = productItems[0][i];
+        const productImages = await db.query(
+            `
+                SELECT 
+                    i.url as image_url,
+                    i.remote_id as image_id
+                FROM 
+                    product_images pi
+                JOIN 
+                    images i ON pi.image_id = i.id
+                WHERE 
+                    pi.product_item_id = ${productItem.id}
+            `
+        );
+        productItem.images = productImages[0];
+    }
+
+    res.status(200).json({
+        status: 'success',
+        data: {
+            count: productItems[0].length,
+            productItems: productItems[0]
+        }
+    });
+
+});

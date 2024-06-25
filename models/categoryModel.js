@@ -14,6 +14,13 @@ const Category = db.define("categories", {
       key: "id",
     },
   },
+  image_id: {
+    type: Sequelize.INTEGER,
+    references: {
+      model: "images",
+      key: "id",
+    },
+  },
 });
 
 module.exports = Category;

@@ -6,12 +6,12 @@ const authController = require('../controllers/authController');
 
 
 router.route('/')
-        .post(categoryController.createCategory)
+        .post(authController.uploadImage, authController.uploadToImageKit, categoryController.createCategory)
         .get(categoryController.getAllCategories);
 
 router.route('/:id')
         .get(categoryController.getCategory)
-        .patch(categoryController.updateCategory)
+        .patch(authController.uploadImage, authController.uploadToImageKit, categoryController.updateCategory)
         .delete(categoryController.deleteCategory);
 
 

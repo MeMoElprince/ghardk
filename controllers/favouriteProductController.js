@@ -102,3 +102,31 @@ exports.deleteFavouriteProduct = catchAsync(async (req, res, next) => {
         data: null
     });
 });
+
+
+exports.deleteFavouriteProductByProductId = catchAsync(async (req, res, next) => {
+    if(!req.params.productId) {
+        return next(new AppError('Please provide product id', 400));
+    }
+    const customer = await Customer.findOne({
+        where: {
+            user_id: req.user.id
+        }
+    });
+    const customer_id = customer.id;
+    const product_item_id = req.params.productId;
+    const favouriteProduct = await FavouriteProduct.findOne({
+        where: {
+            customer_id: customer_id,
+            product_item_id: product_item_id
+        }
+    });
+    if(!favouriteProduct) {
+        return next(new AppError('Product not found in favourite', 404));
+    }
+    await favouriteProduct.destroy();
+    res.status(204).json({
+        status: 'success',
+        data: null
+    });
+});

@@ -763,3 +763,297 @@ exports.getExploreProducts = catchAsync(async (req, res, next) => {
     });
 
 });
+
+
+async function getItemIdsOfInterest(userId){
+
+    let favouriteItems = await db.query(
+        `
+            SELECT 
+                pi.id
+            FROM 
+                product_items pi 
+            JOIN 
+                favourite_products fp ON pi.id = fp.product_item_id
+            JOIN
+                customers c ON fp.customer_id = c.id
+            WHERE 
+                c.user_id = ${userId}
+            LIMIT
+                20
+        `
+    );
+
+    let saleItems = await db.query(
+        `
+            SELECT 
+                pi.id
+            FROM
+                product_items pi
+            JOIN
+                sales_items si ON pi.id = si.product_item_id
+            JOIN
+                sales s ON si.sale_id = s.id
+            JOIN
+                customers c ON s.customer_id = c.id
+            WHERE 
+                c.user_id = ${userId}
+            LIMIT
+                20
+        `
+    );
+
+    let cartItems = await db.query(
+        `
+            SELECT 
+                pi.id
+            FROM 
+                product_items pi
+            JOIN
+                cart_products cp ON pi.id = cp.product_item_id
+            JOIN
+                carts c ON cp.cart_id = c.id
+            JOIN
+                customers cu ON c.customer_id = cu.id
+            WHERE 
+                cu.user_id = ${userId}
+            LIMIT
+                20
+        `
+    );
+    const allItemIds = favouriteItems[0].concat(saleItems[0]).concat(cartItems[0]).map(item => `${item.id}`);
+    const idsSet = new Set(allItemIds);
+    return Array.from(idsSet);
+};
+
+
+async function getItemsImageAndIsFavourite(productItems, req){
+    for(let i = 0; i < productItems.length; i++) {
+        const productItem = productItems[i];
+        const productImages = await db.query(
+            `
+                SELECT 
+                    i.url as image_url,
+                    i.remote_id as image_id
+                FROM 
+                    product_images pi
+                JOIN 
+                    images i ON pi.image_id = i.id
+                WHERE 
+                    pi.product_item_id = ${productItem.id}
+            `
+        );
+        productItem.images = productImages[0];
+        productItem.isFavourite = false;
+        if(req.user)
+        {
+            let favourite = await db.query(
+                `
+                    SELECT
+                        *
+                    FROM
+                        favourite_products
+                    JOIN
+                        customers c ON favourite_products.customer_id = c.id
+                    WHERE
+                        favourite_products.product_item_id = ${productItem.id} AND c.user_id = ${req.user.id}
+                `
+            );
+            if(favourite[0].length > 0)
+                productItem.isFavourite = true;
+        }
+    }
+    return productItems;
+};
+
+async function getProductItem(id, req)
+{
+    
+    let productItem;
+    try{
+        productItem = await db.query(
+            `
+                SELECT
+                    pi.id,
+                    p.name,
+                    p.description,
+                    pi.quantity,
+                    pi.price,
+                    pi.rating,
+                    pi.rating_count,
+                    c.name as category_name,
+                    u.first_name as vendor_first_name,
+                    u.last_name as vendor_last_name,
+                    u.email as vendor_email,
+                    v.description as vendor_description,
+                    v.rating as vendor_rating,
+                    v.rating_count as vendor_rating_count,
+                    i.url as vendor_image_url,
+                    i.remote_id as vendor_image_id
+                FROM
+                    product_items pi
+                JOIN
+                    products p ON pi.product_id = p.id
+                JOIN
+                    categories c ON p.category_id = c.id
+                JOIN
+                    vendors v ON pi.vendor_id = v.id
+                JOIN
+                    users u ON v.user_id = u.id
+                JOIN
+                    images i ON u.image_id = i.id
+                WHERE
+                    pi.id = ${id}
+            `
+        );
+    } catch(err)
+    {
+        console.log(err.message)
+    }
+    if(!productItem || productItem[0].length === 0)
+    {
+        return null;
+    }
+    console.log(color.BgBlue, "After", color.Reset);
+    productItem = productItem[0][0];
+    let productImages = await db.query(
+        `
+            SELECT
+                i.url as image_url,
+                i.remote_id as image_id
+            FROM
+                product_images pi
+            JOIN
+                images i ON pi.image_id = i.id
+            WHERE
+                pi.product_item_id = ${id}
+        `
+    );
+    productItem.images = productImages[0];
+    productItem.isFavourite = false;
+    if(req.user)
+    {
+        let favourite = await db.query(
+            `
+                SELECT
+                    *
+                FROM
+                    favourite_products
+                JOIN
+                    customers c ON favourite_products.customer_id = c.id
+                WHERE
+                    favourite_products.product_item_id = ${productItem.id} AND c.user_id = ${req.user.id}
+            `
+        );
+        if(favourite[0].length > 0)
+            productItem.isFavourite = true;
+    }
+    return productItem;
+};
+
+exports.getForYouProducts = catchAsync(async (req ,res, next) => {
+    let limit = req.query.limit || 50;
+    limit = Math.min(limit, 50);
+    console.log(color.FgBlue, 'Limit: ', limit, color.Reset);
+    let ids = [];
+
+    if(req.user)
+    {
+        try {
+            ids = await getItemIdsOfInterest(req.user.id);
+        } catch (err) {
+            console.log(err.message);
+        }   
+    }
+    console.log(color.FgBlue, 'ids: ', ids, color.Reset);
+    let productItems = [];
+    let shouldGetData = false;
+    try{
+        const myHeaders = new Headers();
+        myHeaders.append("Content-Type", "application/json");
+        let aiData = {
+            ids
+        };
+        const raw = JSON.stringify(aiData);
+        console.log(aiData);
+
+        const requestOptions = {
+            method: "POST",
+            headers: myHeaders,
+            body: raw,
+            redirect: "follow",
+        };
+        let response;
+        try {
+            response = await fetch(`${process.env.AI_URL}/items/ids?limit=${limit}`, requestOptions);
+        }  catch (err) {
+            throw new Error('Error happened while getting for you products from AI :', err.message);
+        }
+        console.log(response.status);
+        let result = await response.json();
+        result = result.ids;
+        console.log(result);
+        for(let i = 0; i < result.length; i++) {
+            const id = result[i];
+            if(id !== id)
+                continue;
+            let productItem = await getProductItem(id, req);
+            if(productItem)
+                productItems.push(productItem);
+        }
+    } catch (err) {
+        console.log("Error happened while getting for you products from AI", err.message);
+        shouldGetData = true;
+    }
+    if(shouldGetData)
+    {
+        console.log(color.FgBlue, 'Getting data from DB', color.Reset);
+        productItems = await db.query(
+            `
+                SELECT
+                    pi.id,
+                    p.name,
+                    p.description,
+                    pi.quantity,
+                    pi.price,
+                    pi.rating,
+                    pi.rating_count,
+                    c.name as category_name,
+                    u.first_name as vendor_first_name,
+                    u.last_name as vendor_last_name,
+                    u.email as vendor_email,
+                    v.description as vendor_description,
+                    v.rating as vendor_rating,
+                    v.rating_count as vendor_rating_count,
+                    i.url as vendor_image_url,
+                    i.remote_id as vendor_image_id
+                FROM
+                    product_items pi
+                JOIN
+                    products p ON pi.product_id = p.id
+                JOIN
+                    categories c ON p.category_id = c.id
+                JOIN
+                    vendors v ON pi.vendor_id = v.id
+                JOIN
+                    users u ON v.user_id = u.id
+                JOIN
+                    images i ON u.image_id = i.id
+                ORDER BY
+                    pi."updatedAt" DESC
+                LIMIT ${limit}
+            `
+        );
+        productItems = productItems[0];
+        productItems = await getItemsImageAndIsFavourite(productItems, req);
+    }
+
+    console.log("herllooo");
+    return res.status(200).json({
+        status: 'success',
+        data: {
+            count: productItems.length,
+            productItems
+        }
+    });
+});

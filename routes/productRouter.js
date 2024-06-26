@@ -21,6 +21,10 @@ router.route('/myProducts/:id')
         .delete(authController.protect, authController.restrictTo('vendor'), productController.deleteMyProductItem);
 
 
+
+router.route('/for-you')
+        .get(authController.isLoggedIn, productController.getForYouProducts);
+
 router.route('/explore')
         .get(authController.isLoggedIn, productController.getExploreProducts);
 router.route('/recommendation-text/:text')

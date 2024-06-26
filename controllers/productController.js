@@ -687,7 +687,8 @@ exports.getExploreProducts = catchAsync(async (req, res, next) => {
     // ai callback
     const sortQuery = req.query.sort || 'updatedAt';
     const sortType = req.query.sortType || 'DESC';
-
+    const minPrice = req.query.minPrice || 0;
+    const maxPrice = req.query.maxPrice || 1000000000;
     let productItems = await db.query(
         `
             SELECT 
@@ -710,6 +711,7 @@ exports.getExploreProducts = catchAsync(async (req, res, next) => {
                 categories c ON p.category_id = c.id
             WHERE 
                 ${req.query.category_id ? `p.category_id = ${req.query.category_id}` : true}
+                And pi.price >= ${minPrice} AND pi.price <= ${maxPrice}
             ORDER BY 
                 pi."${sortQuery}" ${sortType}
             LIMIT 100

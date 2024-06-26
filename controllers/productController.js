@@ -13,6 +13,7 @@ const ProductImage = require('../models/productImageModel');
 const fetch = require('node-fetch');
 const db = require('../config/database');
 const ProductConfiguration = require('../models/productConfigurationModel');
+const Customer = require('../models/customerModel');
 
 const imageKitConfig = new imageKit({
     publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
@@ -53,7 +54,6 @@ exports.deleteProduct = crudFactory.deleteOne(Product);
 
 
 exports.getPopularProducts = catchAsync(async (req, res, next) => {
-    
     let products = await db.query(
         `
             SELECT 
@@ -103,6 +103,26 @@ exports.getPopularProducts = catchAsync(async (req, res, next) => {
             `
         );
         productItem.images = productImages[0];
+        productItem.isFavourite = false;
+        if(req.user)
+        {
+            let favourite = await db.query(
+                `
+                    SELECT
+                        *
+                    FROM
+                        favourite_products
+                    JOIN
+                        customers c ON favourite_products.customer_id = c.id
+                    WHERE
+                        favourite_products.product_item_id = ${productItem.id} AND c.user_id = ${req.user.id}
+                `
+            );
+            if(favourite[0].length > 0)
+                productItem.isFavourite = true;
+        }
+
+
     }
 
     res.status(200).json({
@@ -127,7 +147,7 @@ exports.getAllProductsByVendor = catchAsync(async (req, res, next) => {
         return next(new AppError('Vendor not found', 404));
     }
 
-    const products = await db.query(
+    let productItems = await db.query(
         `
             SELECT 
                 pi.id, 
@@ -148,11 +168,49 @@ exports.getAllProductsByVendor = catchAsync(async (req, res, next) => {
                 pi.vendor_id = ${vendor.id} AND ${req.query.category_id ? `p.category_id = ${req.query.category_id}` : true}
         `
     );
+
+    for(let i = 0; i < productItems[0].length; i++) {
+        const productItem = productItems[0][i];
+        const productImages = await db.query(
+            `
+                SELECT 
+                    i.url as image_url,
+                    i.remote_id as image_id
+                FROM 
+                    product_images pi
+                JOIN 
+                    images i ON pi.image_id = i.id
+                WHERE 
+                    pi.product_item_id = ${productItem.id}
+            `
+        );
+        productItem.images = productImages[0];
+        productItem.isFavourite = false;
+        if(req.user)
+        {
+            let favourite = await db.query(
+                `
+                    SELECT
+                        *
+                    FROM
+                        favourite_products
+                    JOIN
+                        customers c ON favourite_products.customer_id = c.id
+                    WHERE
+                        favourite_products.product_item_id = ${productItem.id} AND c.user_id = ${req.user.id}
+                `
+            );
+            if(favourite[0].length > 0)
+                productItem.isFavourite = true;
+        }
+    }
+
+
     res.status(200).json({
         status: 'success',
         data: {
-            count: products[0].length,
-            products: products[0]
+            count: productItems[0].length,
+            products: productItems[0]
         }
     });
 });
@@ -160,7 +218,6 @@ exports.getAllProductsByVendor = catchAsync(async (req, res, next) => {
 
 exports.getProductItem = catchAsync(async (req, res, next) => {
     const id = req.params.id;
-
     let productItem = await db.query(
         `
             SELECT 
@@ -175,7 +232,10 @@ exports.getProductItem = catchAsync(async (req, res, next) => {
                 u.last_name as vendor_last_name,
                 u.email as vendor_email,
                 i.url as vendor_image_url,
-                i.remote_id as vendor_image_id
+                i.remote_id as vendor_image_id,
+                v.rating as vendor_rating,
+                v.rating_count as vendor_rating_count,
+                v.description as vendor_description
             FROM 
                 product_items pi
             JOIN 
@@ -209,6 +269,24 @@ exports.getProductItem = catchAsync(async (req, res, next) => {
     );
     productItem.images = productImages[0];
 
+    productItem.isFavourite = false;
+    if(req.user)
+    {
+        let favourite = await db.query(
+            `
+                SELECT
+                    *
+                FROM
+                    favourite_products
+                JOIN
+                    customers c ON favourite_products.customer_id = c.id
+                WHERE
+                    favourite_products.product_item_id = ${productItem.id} AND c.user_id = ${req.user.id}
+            `
+        );
+        if(favourite[0].length > 0)
+            productItem.isFavourite = true;
+    }
 
     let productConfigurations = await db.query(
         `
@@ -328,6 +406,24 @@ exports.getAllMyProductItems = catchAsync(async (req, res, next) => {
         `
     );
     productItems = productItems[0];
+
+    for(let i = 0; i < productItems.length; i++) {
+        const item = productItems[i];
+        const productImages = await db.query(
+            `
+                SELECT 
+                    i.url as image_url,
+                    i.remote_id as image_id
+                FROM 
+                    product_images pi
+                JOIN 
+                    images i ON pi.image_id = i.id
+                WHERE 
+                    pi.product_item_id = ${item.id}
+            `
+        );
+        item.images = productImages[0];
+    }
     res.status(200).json({
         status: 'success',
         data: {
@@ -535,7 +631,7 @@ exports.getSimilarProductsByText = catchAsync(async (req, res, next) => {
             continue;
         let productItem = await db.query(
             `
-                SELECT product_items.id, products.name, products.description, product_items.quantity, product_items.price
+                SELECT product_items.rating, product_items.rating_count, product_items.id, products.name, products.description, product_items.quantity, product_items.price
                 FROM product_items
                 JOIN products ON product_items.product_id = products.id
                 WHERE product_items.id = ${id}
@@ -553,11 +649,28 @@ exports.getSimilarProductsByText = catchAsync(async (req, res, next) => {
             `
         );
         productItem.images = productImages[0];
-
+        productItem.isFavourite = false;
+        if(req.user)
+        {
+            let favourite = await db.query(
+                `
+                    SELECT
+                        *
+                    FROM
+                        favourite_products
+                    JOIN
+                        customers c ON favourite_products.customer_id = c.id
+                    WHERE
+                        favourite_products.product_item_id = ${productItem[0].id} AND c.user_id = ${req.user.id}
+                `
+            );
+            if(favourite[0].length > 0)
+                productItem.isFavourite = true;
+        }
         let dataItem = {
             images: productImages[0]
         };
-        dataItem = {...productItem[0], ...dataItem};
+        dataItem = {...productItem[0], ...dataItem, isFavourite: productItem.isFavourite};
         data.push(dataItem);
     }
     console.log('If Error Message: ', result.detail);
@@ -619,6 +732,24 @@ exports.getExploreProducts = catchAsync(async (req, res, next) => {
             `
         );
         productItem.images = productImages[0];
+        productItem.isFavourite = false;
+        if(req.user)
+        {
+            let favourite = await db.query(
+                `
+                    SELECT
+                        *
+                    FROM
+                        favourite_products
+                    JOIN
+                        customers c ON favourite_products.customer_id = c.id
+                    WHERE
+                        favourite_products.product_item_id = ${productItem.id} AND c.user_id = ${req.user.id}
+                `
+            );
+            if(favourite[0].length > 0)
+                productItem.isFavourite = true;
+        }
     }
 
     res.status(200).json({

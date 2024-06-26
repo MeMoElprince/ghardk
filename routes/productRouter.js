@@ -22,9 +22,9 @@ router.route('/myProducts/:id')
 
 
 router.route('/explore')
-        .get(productController.getExploreProducts);
+        .get(authController.isLoggedIn, productController.getExploreProducts);
 router.route('/recommendation-text/:text')
-        .get(productController.getSimilarProductsByText);
+        .get(authController.isLoggedIn, productController.getSimilarProductsByText);
 
 router.route('/')
         .post(productController.createProduct)
@@ -32,13 +32,13 @@ router.route('/')
 
 
 router.route('/popular')
-        .get(productController.getPopularProducts);
+        .get(authController.isLoggedIn, productController.getPopularProducts);
 
 router.route('/vendors/:vendorId')
-        .get(productController.getAllProductsByVendor);
+        .get(authController.isLoggedIn, productController.getAllProductsByVendor);
 
 router.route('/items/:id')
-        .get(productController.getProductItem)
+        .get(authController.isLoggedIn, productController.getProductItem)
 
 router.route('/:id')
         .get(productController.getProduct)

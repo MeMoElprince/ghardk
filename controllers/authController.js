@@ -270,6 +270,29 @@ exports.protect = catchAsync(async (req, res, next) => {
     next();
 });
 
+exports.isLoggedIn = catchAsync(async (req, res, next) =>{
+    let token;
+    if(req.headers.authorization && req.headers.authorization.startsWith('Bearer'))
+        token = req.headers.authorization.split(' ')[1];
+    if(!token)
+        return next();
+    // verification token
+    const decoded = await tokenFactory.verify(token);
+    // check if user still exists
+    const currentUser = await User.findByPk(decoded.id);
+    if(!currentUser)
+        return next();
+    // check if user changed password after the token was issued
+    // convert the password changed at to milliseconds 
+    const passwordChangedAt = new Date(currentUser.password_changed_at).getTime() / 1000;
+    if(passwordChangedAt > decoded.iat)
+        return next();
+    if(!currentUser.active)
+        return next();
+    req.user = currentUser;
+    next();
+});
+
 exports.verifyAccount = catchAsync(async (req, res, next) => {
     const secretToken = crypto.createHash("sha256").update(req.body.secretToken).digest("hex");
     const user = await User.findOne({

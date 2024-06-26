@@ -326,7 +326,8 @@ exports.getMe = catchAsync(async (req, res, next) => {
 });
 
 exports.updateMe = catchAsync(async (req, res, next) => {
-    const data = filterObj(req.body, 'first_name', 'last_name', 'dob', 'gender');
+    console.log(color.FgCyan, "Update Me Route", color.Reset);
+    const data = filterObj(req.body, 'first_name', 'last_name', 'dob', 'gender', 'user_name');
     const { user } = req;
     const currentData = {};
     Object.keys(data).forEach(el => {
@@ -395,6 +396,7 @@ exports.updateMe = catchAsync(async (req, res, next) => {
             return next(new AppError('Error editing image', 500));
         }
     }
+    console.log(color.FgGreen, 'User updated successfully.', color.Reset);
     user.password = undefined;
     user.password_confirm = undefined;
     res.status(200).json({

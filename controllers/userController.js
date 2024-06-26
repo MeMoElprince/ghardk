@@ -328,6 +328,8 @@ exports.getMe = catchAsync(async (req, res, next) => {
 exports.updateMe = catchAsync(async (req, res, next) => {
     console.log(color.FgCyan, "Update Me Route", color.Reset);
     const data = filterObj(req.body, 'first_name', 'last_name', 'dob', 'gender', 'user_name');
+    console.log(data);
+    console.log(req.body);
     const { user } = req;
     const currentData = {};
     Object.keys(data).forEach(el => {

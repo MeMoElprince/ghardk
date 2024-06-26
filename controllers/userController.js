@@ -169,6 +169,16 @@ exports.getUser = catchAsync(async (req, res, next) => {
 
 exports.getTopRatedVendors = catchAsync(async (req, res, next) => {
     console.log(color.BgBlue, ' Get Top Rated Vendors::---------------- ', color.Reset);
+    // get top rated vendors by categories 
+
+    let categories = req.query.category_id;
+    if(categories)
+        categories = categories.split(','), categories = categories.map(el => parseInt(el)), categories = `(${categories})`;
+    console.log(categories);
+
+    // at the end of the query, we will have to group by user id, image id and vendor id
+    // i want to get all categories of this vendors
+
     const vendors = await db.query(
         `
             SELECT
@@ -192,6 +202,18 @@ exports.getTopRatedVendors = catchAsync(async (req, res, next) => {
                 images i ON u.image_id = i.id
             JOIN
                 vendors v ON u.id = v.user_id
+            JOIN 
+                product_items pi ON v.id = pi.vendor_id
+            JOIN
+                products p ON pi.product_id = p.id
+            JOIN
+                categories c ON p.category_id = c.id
+            WHERE
+                u.role = 'vendor' 
+                    and 
+                        ${req.query.category_id ? `c.id IN ${categories}` : 'true'}
+            GROUP BY
+                u.id, i.id, v.id
             ORDER BY
                 v.rating DESC
             LIMIT

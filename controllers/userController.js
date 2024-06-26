@@ -88,7 +88,7 @@ exports.getAllUsers = catchAsync(async (req, res, next) => {
 
 // get user by id
 exports.getUser = catchAsync(async (req, res, next) => {
-    
+    console.log(color.FgCyan, "Get User", color.Reset);
     let isVendor = false;
 
     const vendor = await User.findByPk(req.params.id);
@@ -168,7 +168,7 @@ exports.getUser = catchAsync(async (req, res, next) => {
 
 
 exports.getTopRatedVendors = catchAsync(async (req, res, next) => {
-    console.log(color.BgBlue, ' I am Here::---------------- ', color.Reset);
+    console.log(color.BgBlue, ' Get Top Rated Vendors::---------------- ', color.Reset);
     const vendors = await db.query(
         `
             SELECT
@@ -209,6 +209,8 @@ exports.getTopRatedVendors = catchAsync(async (req, res, next) => {
 
 // update user by id
 exports.updateUser = catchAsync(async (req, res, next) => {
+    console.log(color.FgCyan, "Update User Route", color.Reset);
+
     const user = await User.findByPk(req.params.id);
     if(!user) {
         return next(new AppError('No user found with that ID', 404));
@@ -216,10 +218,12 @@ exports.updateUser = catchAsync(async (req, res, next) => {
     if(req.body.password || req.body.role) {
         return next(new AppError('You cannot update password or role', 401));
     }
-    const data = filterObj(req.body, 'first_name', 'last_name', 'email', 'dob', 'gender', 'language_preference');
+    const data = filterObj(req.body, 'first_name', 'last_name', 'user_name', 'dob', 'gender', 'language_preference');
     Object.keys(data).forEach(el => {
         user[el] = data[el];
     });
+    console.log(color.FgGreen, 'User updated successfully.', color.Reset);
+    console.log(data);
     await user.save();
     res.status(200).json({
         status: 'success',
@@ -231,6 +235,8 @@ exports.updateUser = catchAsync(async (req, res, next) => {
 
 // delete user by id
 exports.deleteUser = catchAsync(async (req, res, next) => {
+    console.log(color.FgCyan, "Delete User Route", color.Reset);
+
     const user = await User.findByPk(req.params.id);
     if(!user) {
         return next(new AppError('No user found with that ID', 404));
@@ -243,6 +249,7 @@ exports.deleteUser = catchAsync(async (req, res, next) => {
 });
 
 exports.getMe = catchAsync(async (req, res, next) => {
+    console.log(color.FgCyan, "Get Me Route", color.Reset);
     // get the user from the database with filtered fields 
     let user;
     if(req.user.role === 'vendor')

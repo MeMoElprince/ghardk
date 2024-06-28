@@ -65,6 +65,16 @@ exports.getPopularProducts = catchAsync(async (req, res, next) => {
                 pi.rating,
                 pi.rating_count,
                 c.name as category_name,
+                u.id as vendor_id,
+                u.user_name as vendor_user_name,
+                u.first_name as vendor_first_name,
+                u.last_name as vendor_last_name,
+                u.email as vendor_email,
+                v.rating as vendor_rating,
+                v.rating_count as vendor_rating_count,
+                v.description as vendor_description,
+                i.url as vendor_image_url,
+                i.remote_id as vendor_image_id,
                 COUNT(si.product_item_id) as sales_count
             FROM 
                 product_items pi
@@ -74,13 +84,29 @@ exports.getPopularProducts = catchAsync(async (req, res, next) => {
                 products p ON pi.product_id = p.id
             JOIN
                 categories c ON p.category_id = c.id
+            JOIN 
+                vendors v ON pi.vendor_id = v.id
+            JOIN
+                users u ON v.user_id = u.id
+            JOIN
+                images i ON u.image_id = i.id
             GROUP BY 
+                i.url,
+                i.remote_id,
                 pi.id, 
                 p.name, 
                 p.description, 
                 pi.quantity, 
                 pi.price,
-                c.name
+                c.name,
+                u.id,
+                u.user_name,
+                u.first_name,
+                u.last_name,
+                u.email,
+                v.rating,
+                v.rating_count,
+                v.description
             ORDER BY 
                 sales_count DESC
             LIMIT 100
@@ -228,6 +254,7 @@ exports.getProductItem = catchAsync(async (req, res, next) => {
                 pi.price,
                 pi.rating,
                 pi.rating_count,
+                u.id as vendor_id,
                 u.user_name as vendor_user_name,
                 u.first_name as vendor_first_name,
                 u.last_name as vendor_last_name,
@@ -632,10 +659,39 @@ exports.getSimilarProductsByText = catchAsync(async (req, res, next) => {
             continue;
         let productItem = await db.query(
             `
-                SELECT product_items.rating, product_items.rating_count, product_items.id, products.name, products.description, product_items.quantity, product_items.price
-                FROM product_items
-                JOIN products ON product_items.product_id = products.id
-                WHERE product_items.id = ${id}
+                SELECT 
+                    pi.rating, 
+                    pi.rating_count, 
+                    pi.id, 
+                    p.name, 
+                    p.description, 
+                    pi.quantity, 
+                    pi.price,
+                    c.name as category_name,
+                    u.id as vendor_id,
+                    u.user_name as vendor_user_name,
+                    u.first_name as vendor_first_name,
+                    u.last_name as vendor_last_name,
+                    u.email as vendor_email,
+                    v.rating as vendor_rating,
+                    v.rating_count as vendor_rating_count,
+                    v.description as vendor_description,
+                    i.url as vendor_image_url,
+                    i.remote_id as vendor_image_id
+                FROM 
+                    product_items pi
+                JOIN 
+                    products p ON pi.product_id = p.id
+                JOIN
+                    categories c ON p.category_id = c.id
+                JOIN
+                    vendors v ON pi.vendor_id = v.id
+                JOIN
+                    users u ON v.user_id = u.id
+                JOIN
+                    images i ON u.image_id = i.id
+                WHERE 
+                    pi.id = ${id}
             `
         );
         if(productItem[0].length === 0)
@@ -703,13 +759,29 @@ exports.getExploreProducts = catchAsync(async (req, res, next) => {
                 c.name as category_name,
                 c.id as category_id,
                 pi."createdAt",
-                pi."updatedAt"
+                pi."updatedAt",
+                u.id as vendor_id,
+                u.user_name as vendor_user_name,
+                u.first_name as vendor_first_name,
+                u.last_name as vendor_last_name,
+                u.email as vendor_email,
+                v.rating as vendor_rating,
+                v.rating_count as vendor_rating_count,
+                v.description as vendor_description,
+                i.url as vendor_image_url,
+                i.remote_id as vendor_image_id
             FROM 
                 product_items pi
             JOIN 
                 products p ON pi.product_id = p.id
             JOIN
                 categories c ON p.category_id = c.id
+            JOIN
+                vendors v ON pi.vendor_id = v.id
+            JOIN
+                users u ON v.user_id = u.id
+            JOIN
+                images i ON u.image_id = i.id
             WHERE 
                 ${req.query.category_id ? `p.category_id = ${req.query.category_id}` : true}
                 And pi.price >= ${minPrice} AND pi.price <= ${maxPrice}
@@ -883,6 +955,7 @@ async function getProductItem(id, req)
                     pi.rating,
                     pi.rating_count,
                     c.name as category_name,
+                    u.id as vendor_id,
                     u.user_name as vendor_user_name,
                     u.first_name as vendor_first_name,
                     u.last_name as vendor_last_name,
@@ -1021,6 +1094,7 @@ exports.getForYouProducts = catchAsync(async (req ,res, next) => {
                     pi.rating,
                     pi.rating_count,
                     c.name as category_name,
+                    u.id as vendor_id,
                     u.user_name as vendor_user_name,
                     u.first_name as vendor_first_name,
                     u.last_name as vendor_last_name,

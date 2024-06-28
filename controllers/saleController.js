@@ -39,7 +39,9 @@ exports.getAllMySales = catchAsync(async (req, res, next) => {
             s.address_id,
             u.first_name AS vendor_first_name, 
             u.last_name AS vendor_last_name, 
-            u.email AS vendor_email
+            u.email AS vendor_email,
+            s."createdAt" as sale_created_at,
+            s."updatedAt" as sale_updated_at
           FROM sales s
           JOIN vendors v ON s.vendor_id = v.id
           JOIN users u ON v.user_id = u.id
@@ -59,7 +61,9 @@ exports.getAllMySales = catchAsync(async (req, res, next) => {
             s.address_id AS customer_address_id,
             u.first_name as customer_first_name, 
             u.last_name as customer_last_name, 
-            u.email as customer_email
+            u.email as customer_email,
+            s."createdAt" as sale_created_at,
+            s."updatedAt" as sale_updated_at
           FROM sales s
           JOIN customers c ON s.customer_id = c.id
           JOIN users u ON c.user_id = u.id
@@ -97,7 +101,9 @@ exports.getMyPendingSales = catchAsync(async (req, res, next) => {
           s.address_id,
           u.first_name AS vendor_first_name, 
           u.last_name AS vendor_last_name, 
-          u.email AS vendor_email
+          u.email AS vendor_email,
+          s."createdAt" as sale_created_at,
+          s."updatedAt" as sale_updated_at
         FROM sales s
         JOIN vendors v ON s.vendor_id = v.id
         JOIN users u ON v.user_id = u.id
@@ -159,7 +165,9 @@ exports.getSale = catchAsync(async (req, res, next) => {
           a.street_name,
           a.postal_code,
           a.description as address_description,
-          t.status as transaction_status
+          t.status as transaction_status,
+          s."createdAt" as sale_created_at,
+          s."updatedAt" as sale_updated_at
         FROM 
           sales s
         JOIN 

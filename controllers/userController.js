@@ -101,6 +101,9 @@ exports.getUser = catchAsync(async (req, res, next) => {
     }
 
 
+    const data = filterObj('role');
+
+
     let user = await db.query(
         `
             SELECT
@@ -127,8 +130,14 @@ exports.getUser = catchAsync(async (req, res, next) => {
 
     user = user[0][0];
 
+    
+
     if(!user) {
         return next(new AppError('No user found with that ID', 404));
+    }
+
+    if(data.role && user.role !== data.role) {
+        return next(new AppError('No user found', 400));
     }
 
     if(isVendor)

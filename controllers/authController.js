@@ -187,7 +187,7 @@ exports.signUp = catchAsync(async (req, res, next) => {
 });
 
 exports.login = catchAsync(async (req, res, next) => {
-    const data = filterObj(req.body, 'email', 'password');
+    const data = filterObj(req.body, 'email', 'password', 'role');
 
     if(!data.password || !data.email)
         return next(new AppError('You must provide an email and password together!', 400));
@@ -196,6 +196,12 @@ exports.login = catchAsync(async (req, res, next) => {
             email: data.email
         }
     });
+
+    if(data.role)
+    {
+        if(user.role !== data.role)   
+            return next(new AppError('You have no rights to login', 401));
+    }
 
     if(!user || !await user.validatePassword(data.password))
         return next(new AppError('Email or password isn\'t correct...', 401)); 

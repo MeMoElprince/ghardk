@@ -101,7 +101,7 @@ exports.getUser = catchAsync(async (req, res, next) => {
     }
 
 
-    const data = filterObj('role');
+    const data = filterObj(req.body, 'role');
 
 
     let user = await db.query(

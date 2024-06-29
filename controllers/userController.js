@@ -101,7 +101,7 @@ exports.getUser = catchAsync(async (req, res, next) => {
     }
 
 
-    const data = filterObj(req.body, 'role');
+    const data = filterObj(req.query, 'role');
 
 
     let user = await db.query(
@@ -137,7 +137,7 @@ exports.getUser = catchAsync(async (req, res, next) => {
     }
 
     if(data.role && user.role !== data.role) {
-        return next(new AppError('No user found', 400));
+        return next(new AppError('No user found', 404));
     }
 
     if(isVendor)

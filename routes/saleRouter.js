@@ -6,6 +6,12 @@ const saleController = require('../controllers/saleController');
 const authController = require('../controllers/authController');
 
 
+router.route('/my-pending-transaction')
+        .get(authController.protect, authController.restrictTo('vendor', 'customer'), saleController.getMyPendingTransactions);
+
+router.route('/my-statistics')
+        .get(authController.protect, authController.restrictTo('vendor'), saleController.getMyStatistics);
+
 router.route('/')
         .get(authController.protect, authController.restrictTo('customer', 'vendor'), saleController.getAllMySales);
 router.route('/pending')

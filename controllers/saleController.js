@@ -18,6 +18,118 @@ const Review = require('../models/reviewModel');
 const db = require('../config/database');
 
 
+
+
+exports.getMyPendingTransactions = catchAsync(async (req, res, next) => {
+
+  let customer;
+  let vendor;
+  if(req.user.role === 'customer')
+  {
+    customer = await Customer.findOne({ where: { user_id: req.user.id } });
+  }
+  if(req.user.role === 'vendor')
+  {
+    vendor = await Vendor.findOne({ where: { user_id: req.user.id } });
+  }
+
+  if(!customer && !vendor)
+  {
+    return next(new AppError("You can't do this operation", 401));
+  }
+
+  let transactions = await db.query(
+    `
+      SELECT 
+        t.id,
+        t.status as transaction_status,
+        s.status as sale_status,
+        t."createdAt" as transaction_created_at,
+        t."updatedAt" as transaction_updated_at,
+        u.first_name as customer_first_name,
+        u.last_name as customer_last_name,
+        u.email as customer_email,
+        u2.first_name as vendor_first_name,
+        u2.last_name as vendor_last_name,
+        u2.email as vendor_email,
+        p.name as product_name,
+        p.description as product_description,
+        pi.price as product_price,
+        si.quantity as product_quantity
+      FROM
+        sales_items si
+      JOIN
+        sales s ON si.sale_id = s.id
+      JOIN
+        transactions t ON s.transaction_id = t.id
+      JOIN
+        customers c ON s.customer_id = c.id
+      JOIN
+        users u ON c.user_id = u.id
+      JOIN
+        vendors v ON s.vendor_id = v.id
+      JOIN
+        users u2 ON v.user_id = u2.id
+      JOIN
+        product_items pi ON si.product_item_id = pi.id
+      JOIN
+        products p ON pi.product_id = p.id
+      WHERE
+        ${(customer ? `s.customer_id = ${customer.id} AND t.status='pending'` : 'true')} AND
+        ${(vendor ? `s.vendor_id = ${vendor.id} AND t.status='success' AND s.status ='pending'` : 'true')};
+    `
+  );
+
+  transactions = transactions[0];
+  if(!transactions)
+  {
+    return next(new AppError("No transactions found", 404));
+  }
+  
+  res.status(200).json({
+    status: "success",
+    data: {
+      count: transactions.length,
+      transactions,
+    },
+  });
+
+});
+
+exports.getMyStatistics = catchAsync(async (req, res, next) => {
+  const vendor = await Vendor.findOne({ where: { user_id: req.user.id } });
+  if (!vendor) {
+    return next(new AppError("You are not a vendor", 401));
+  }
+  let sales = await db.query(
+    `
+      SELECT
+        COUNT(s.id) as total_sales,
+        SUM(s.total_price) as total_revenue,
+        COUNT(CASE WHEN s.status = 'pending' THEN 1 END) as pending_sales,
+        COUNT(CASE WHEN s.status = 'success' THEN 1 END) as success_sales,
+        COUNT(CASE WHEN s.status = 'cancelled' THEN 1 END) as cancelled_sales
+      FROM sales s
+      JOIN 
+        transactions t ON s.transaction_id = t.id
+      WHERE s.vendor_id = ${vendor.id} AND t.status != 'pending'
+    `
+  );
+
+  sales = sales[0][0];
+  if(!sales)
+  {
+    return next(new AppError("No sales found", 404));
+  }
+  res.status(200).json({
+    status: "success",
+    data: {
+      statistics: sales,
+    },
+  });
+
+});
+
 exports.getAllMySales = catchAsync(async (req, res, next) => {
     const { status } = req.query;
     const customer = await Customer.findOne({ where: { user_id: req.user.id } });
@@ -67,7 +179,8 @@ exports.getAllMySales = catchAsync(async (req, res, next) => {
           FROM sales s
           JOIN customers c ON s.customer_id = c.id
           JOIN users u ON c.user_id = u.id
-          WHERE s.vendor_id = ${vendor.id} and ${(status ? `s.status = '${status}'` : 'true')}
+          JOIN transactions t ON s.transaction_id = t.id
+          WHERE s.vendor_id = ${vendor.id} and ${(status ? `s.status = '${status}'` : 'true')} and t.status != 'pending'
         `
       );
       sales = sales[0];
@@ -77,6 +190,7 @@ exports.getAllMySales = catchAsync(async (req, res, next) => {
     res.status(200).json({
       status: "success",
       data: {
+        count: sales.length,
         sales,
       },
     });

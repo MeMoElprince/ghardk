@@ -21,7 +21,8 @@ router.route('/myProducts/:id')
         .patch(authController.protect, authController.restrictTo('vendor'), productController.updateMyProductItem)
         .delete(authController.protect, authController.restrictTo('vendor'), productController.deleteMyProductItem);
 
-
+router.route('/search-image')
+        .post(productController.loadImage, productController.loadImageToBody, productController.searchByImage);
 
 router.route('/for-you')
         .get(authController.isLoggedIn, productController.getForYouProducts);

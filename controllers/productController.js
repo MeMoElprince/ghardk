@@ -22,10 +22,18 @@ const imageKitConfig = new imageKit({
 });
 
 
+exports.loadImage = imageUpload.single('image');
 
 exports.uploadProductImage = imageUpload.fields([
     {name: 'images', maxCount: 10, minCount: 1},
 ]);
+
+exports.loadImageToBody = catchAsync(async (req, res,next)=> {
+    if(!req.file)
+        return next(new AppError('Please upload an image', 400));
+    req.body.image = req.file;
+    next();
+});
 
 exports.uploadProductImageToImageKit = catchAsync(async (req, res, next) => {
     if(!req.files.images) {
@@ -34,8 +42,6 @@ exports.uploadProductImageToImageKit = catchAsync(async (req, res, next) => {
     req.body.images = req.files.images;
     next();
 });
-
-
 
 
 const filterObj = (obj, ...allowedFields) => {
@@ -347,7 +353,6 @@ exports.getProductItem = catchAsync(async (req, res, next) => {
 });
 
 
-
 exports.createNewProductItem = catchAsync(async (req, res, next) => {
     let data = filterObj(req.body, 'name', 'description', 'category_id');
     const newProduct = await Product.create(data);
@@ -592,6 +597,7 @@ exports.createProductImages = catchAsync(async (req, res, next) => {
     const imageUrls = [];
     for(let i = 0; i < images.length; i++) {
         const image = images[i];
+        
         const imageKitResponse = await imageKitConfig.upload({
             file: image.buffer.toString('base64'),
             fileName: image.originalname,
@@ -606,6 +612,30 @@ exports.createProductImages = catchAsync(async (req, res, next) => {
             product_item_id: productItem.id,
             image_id: newImage.id
         })
+        const imageBase64 = image.buffer.toString('base64');
+        const itemId = productItem.id;
+        const imageId = newImage.id;
+        try {
+            const myHeaders = new Headers();
+            myHeaders.append("Content-Type", "application/json");
+            const aiData = {
+                item_id: `${itemId}`,
+                image_id: `${imageId}`,
+                image_base64: imageBase64
+            };
+            const raw = JSON.stringify(aiData);
+            const requestOptions = {
+                method: "POST",
+                headers: myHeaders,
+                body: raw,
+                redirect: "follow",
+            };
+            const response = await fetch(`${process.env.AI_URL}/item/image`, requestOptions);
+            const result = await response.json();
+        } catch(err)
+        {
+            console.log("Error while uploading image to AI: ", err.message);
+        }
     }
     res.status(201).json({
         status: 'success',
@@ -628,9 +658,26 @@ exports.deleteProductImage = catchAsync(async (req, res, next) => {
             data: null
         });
     }
+
+    const imageId = image.id;
+
     await productImage.destroy();
     await imageKitConfig.deleteFile(image.remote_id);
     await image.destroy();
+
+    try{
+        const requestOptions = {
+            method: "DELETE",
+            redirect: "follow",
+        };
+        const response = await fetch(`${process.env.AI_URL}/item/image/${imageId}`, requestOptions);
+        const result = await response.json();
+        console.log(result);
+
+    } catch(err){ 
+        console.log("Error while deleting image from AI: ", err.message);
+    }
+
     res.status(204).json({
         status: 'success',
         data: null
@@ -1132,5 +1179,51 @@ exports.getForYouProducts = catchAsync(async (req ,res, next) => {
             count: productItems.length,
             productItems
         }
+    });
+});
+
+
+exports.searchByImage = catchAsync(async (req, res, next) => {
+    if(!req.file) {
+        return next(new AppError('Please upload an image', 400));
+    }
+
+    const limit = req.query.limit || 50;
+    if(limit > 50)
+        limit = 50;
+    const image = req.body.image.buffer.toString('base64');
+    const myHeaders = new Headers();
+    myHeaders.append("Content-Type", "application/json");
+    const aiData = {
+        image_base64: image
+    };
+    const raw = JSON.stringify(aiData);
+    const requestOptions = {
+        method: "POST",
+        headers: myHeaders,
+        body: raw,
+        redirect: "follow",
+    };
+    let result;
+    try {
+        const response = await fetch(`${process.env.AI_URL}/item/image_base64?limit=${limit}`, requestOptions);
+        result = await response.json();
+    } catch(err)
+    {
+        console.log("Error happened while searching by image: ", err.message);
+    }
+    let data = [];
+    for(let i = 0; i < result.ids.length; i++) {
+        const id = result.ids[i] * 1;
+        if(id !== id)
+            continue;
+        let productItem = await getProductItem(id, req);
+        if(productItem)
+            data.push(productItem);
+    }
+    console.log('If Error Message:', result.detail);
+    res.status(200).json({
+        status: "success",
+        data
     });
 });

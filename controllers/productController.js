@@ -125,11 +125,16 @@ exports.getPopularProducts = catchAsync(async (req, res, next) => {
             `
                 SELECT 
                     i.url as image_url,
-                    i.remote_id as image_id
+                    i.remote_id as image_id,
+                    ii.id as product_image_id
                 FROM 
                     product_images pi
                 JOIN 
                     images i ON pi.image_id = i.id
+                JOIN
+                    product_items pi ON pi.id = pi.product_item_id
+                JOIN
+                    product_images ii ON pi.id = ii.product_item_id
                 WHERE 
                     pi.product_item_id = ${productItem.id}
             `
@@ -208,11 +213,16 @@ exports.getAllProductsByVendor = catchAsync(async (req, res, next) => {
             `
                 SELECT 
                     i.url as image_url,
-                    i.remote_id as image_id
+                    i.remote_id as image_id,
+                    ii.id as product_image_id
                 FROM 
                     product_images pi
                 JOIN 
                     images i ON pi.image_id = i.id
+                JOIN
+                    product_items pi ON pi.id = pi.product_item_id
+                JOIN
+                    product_images ii ON pi.id = ii.product_item_id
                 WHERE 
                     pi.product_item_id = ${productItem.id}
             `
@@ -295,11 +305,15 @@ exports.getProductItem = catchAsync(async (req, res, next) => {
             SELECT 
                 i.url as image_url,
                 i.remote_id as image_id,
-                pi.id as product_image_id
+                ii.id as product_image_id
             FROM 
                 product_images pi
             JOIN 
                 images i ON pi.image_id = i.id
+            JOIN
+                product_items pi ON pi.id = pi.product_item_id
+            JOIN
+                product_images ii ON pi.id = ii.product_item_id
             WHERE pi.product_item_id = ${id}
         `
     );
@@ -449,11 +463,16 @@ exports.getAllMyProductItems = catchAsync(async (req, res, next) => {
             `
                 SELECT 
                     i.url as image_url,
-                    i.remote_id as image_id
+                    i.remote_id as image_id,
+                    ii.id as product_image_id
                 FROM 
                     product_images pi
                 JOIN 
                     images i ON pi.image_id = i.id
+                JOIN    
+                    product_items pi ON pi.id = pi.product_item_id
+                JOIN
+                    product_images ii ON pi.id = ii.product_item_id
                 WHERE 
                     pi.product_item_id = ${item.id}
             `
@@ -750,9 +769,11 @@ exports.getSimilarProductsByText = catchAsync(async (req, res, next) => {
         productItem = productItem[0];
         const productImages = await db.query(
             `
-                SELECT images.url AS image_url , images.remote_id AS image_id
+                SELECT images.url AS image_url , images.remote_id AS image_id, ii.id AS product_image_id
                 FROM product_images
                 JOIN images ON product_images.image_id = images.id
+                JOIN product_items ON product_images.product_item_id = product_items.id
+                JOIN product_images ii ON product_items.id = ii.product_item_id
                 WHERE product_images.product_item_id = ${id}
             `
         );
@@ -848,11 +869,16 @@ exports.getExploreProducts = catchAsync(async (req, res, next) => {
             `
                 SELECT 
                     i.url as image_url,
-                    i.remote_id as image_id
+                    i.remote_id as image_id,
+                    ii.id as product_image_id
                 FROM 
                     product_images pi
                 JOIN 
                     images i ON pi.image_id = i.id
+                JOIN
+                    product_items pi ON pi.id = pi.product_item_id
+                JOIN
+                    product_images ii ON pi.id = ii.product_item_id
                 WHERE 
                     pi.product_item_id = ${productItem.id}
             `
@@ -959,11 +985,15 @@ async function getItemsImageAndIsFavourite(productItems, req){
                 SELECT 
                     i.url as image_url,
                     i.remote_id as image_id,
-                    pi.id as product_image_id
+                    ii.id as product_image_id
                 FROM 
                     product_images pi
                 JOIN 
                     images i ON pi.image_id = i.id
+                JOIN
+                    product_items pi ON pi.id = pi.product_item_id
+                JOIN
+                    product_images ii ON pi.id = ii.product_item_id
                 WHERE 
                     pi.product_item_id = ${productItem.id}
             `
@@ -1049,11 +1079,15 @@ async function getProductItem(id, req)
             SELECT
                 i.url as image_url,
                 i.remote_id as image_id,
-                pi.id as product_image_id
+                ii.id as product_image_id
             FROM
                 product_images pi
             JOIN
                 images i ON pi.image_id = i.id
+            JOIN
+                product_items pi ON pi.id = pi.product_item_id
+            JOIN
+                product_images ii ON pi.id = ii.product_item_id
             WHERE
                 pi.product_item_id = ${id}
         `

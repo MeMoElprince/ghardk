@@ -189,7 +189,8 @@ exports.getAllProductsByVendor = catchAsync(async (req, res, next) => {
                 pi.price,
                 pi.rating,
                 pi.rating_count,
-                c.name as category_name
+                c.name as category_name,
+                c.id as category_id
             FROM 
                 product_items pi
             JOIN 
@@ -427,7 +428,8 @@ exports.getAllMyProductItems = catchAsync(async (req, res, next) => {
                 pi.price,
                 pi.rating,
                 pi.rating_count,
-                c.name as category_name
+                c.name as category_name,
+                c.id as category_id
             FROM
                 product_items pi
             JOIN
@@ -716,6 +718,7 @@ exports.getSimilarProductsByText = catchAsync(async (req, res, next) => {
                     pi.quantity, 
                     pi.price,
                     c.name as category_name,
+                    c.id as category_id,
                     u.id as vendor_id,
                     u.user_name as vendor_user_name,
                     u.first_name as vendor_first_name,
@@ -1004,6 +1007,7 @@ async function getProductItem(id, req)
                     pi.rating,
                     pi.rating_count,
                     c.name as category_name,
+                    c.id as category_id,
                     u.id as vendor_id,
                     u.user_name as vendor_user_name,
                     u.first_name as vendor_first_name,
@@ -1144,6 +1148,7 @@ exports.getForYouProducts = catchAsync(async (req ,res, next) => {
                     pi.rating,
                     pi.rating_count,
                     c.name as category_name,
+                    c.id as category_id,
                     u.id as vendor_id,
                     u.user_name as vendor_user_name,
                     u.first_name as vendor_first_name,

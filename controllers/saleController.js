@@ -151,14 +151,24 @@ exports.getAllMySales = catchAsync(async (req, res, next) => {
             s.total_price, 
             s.status,  
             s.address_id,
+            u.user_name AS vendor_user_name,
             u.first_name AS vendor_first_name, 
             u.last_name AS vendor_last_name, 
             u.email AS vendor_email,
             s."createdAt" as sale_created_at,
-            s."updatedAt" as sale_updated_at
+            s."updatedAt" as sale_updated_at,
+            p.name as product_name,
+            p.description as product_description,
+            pi.price as product_price,
+            si.quantity as product_quantity,
+            t.status as transaction_status
           FROM sales s
           JOIN vendors v ON s.vendor_id = v.id
           JOIN users u ON v.user_id = u.id
+          JOIN sales_items si ON s.id = si.sale_id
+          JOIN product_items pi ON si.product_item_id = pi.id
+          JOIN products p ON pi.product_id = p.id
+          JOIN transactions t ON s.transaction_id = t.id
           WHERE s.customer_id = ${customer.id} and ${(status ? `s.status = '${status}'` : 'true')}
         `
       );
@@ -173,15 +183,24 @@ exports.getAllMySales = catchAsync(async (req, res, next) => {
             s.total_price, 
             s.status, 
             s.address_id AS customer_address_id,
+            u.user_name as customer_user_name,
             u.first_name as customer_first_name, 
             u.last_name as customer_last_name, 
             u.email as customer_email,
             s."createdAt" as sale_created_at,
-            s."updatedAt" as sale_updated_at
+            s."updatedAt" as sale_updated_at,
+            t.status as transaction_status,
+            pi.price as product_price,
+            si.quantity as product_quantity,
+            p.name as product_name,
+            p.description as product_description
           FROM sales s
           JOIN customers c ON s.customer_id = c.id
           JOIN users u ON c.user_id = u.id
           JOIN transactions t ON s.transaction_id = t.id
+          JOIN sales_items si ON s.id = si.sale_id
+          JOIN product_items pi ON si.product_item_id = pi.id
+          JOIN products p ON pi.product_id = p.id
           WHERE s.vendor_id = ${vendor.id} and ${(status ? `s.status = '${status}'` : 'true')} and t.status != 'pending'
         `
       );

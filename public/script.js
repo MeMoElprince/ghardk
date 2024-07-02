@@ -26,7 +26,8 @@ data = Object.keys(data).map(key => {
     data[key].quantity *= 1;
     data[key].price = parseFloat(data[key].price.replace(',', ''));
     data[key].category_id *= 1;
-    data[key].image = data[key].image.replace('//', 'https://');
+    if(data[key].image.startsWith('//'))
+        data[key].image = data[key].image.replace('//', 'https://');
     if(data[key].description.length > 250)
     {
         data[key].description = data[key].description.slice(0, 250) + '...';

@@ -77,10 +77,12 @@ exports.signUp = catchAsync(async (req, res, next) => {
     try {
         user = await User.create(data);
     } catch (err) {
+        console.log(color.FgRed, 'Removing image...', color.Reset);
         if(newImage)
             await newImage.destroy();
         if(!local)
             await imageKitConfig.deleteFile(image.fileId);
+        throw err;
         return next(new AppError(`User failed to be created ${err.message}`, 400));
     }
     console.log(color.FgGreen, 'User created successfully.', color.Reset);

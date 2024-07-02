@@ -7,8 +7,8 @@ const productImage = DB.define('product_image', {
         type: Sequelize.INTEGER,
         allowNull: false,
         references: {
-        model: 'product_items',
-        key: 'id'
+            model: 'product_items',
+            key: 'id'
         }
     },
     image_id: {

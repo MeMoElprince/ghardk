@@ -10,10 +10,10 @@ const Vendor = require('../models/vendorModel');
 const Balance = require('../models/balanceModel');
 const Category = require('../models/categoryModel');
 
+
 const color = require('../utils/colors');
 const fetch = require('node-fetch');
 const imageKit = require('imagekit');
-const { create } = require('domain');
 
 
 
@@ -187,8 +187,6 @@ async function getImageBase64(url) {
 
 async function createProducts(data) {
     for (const [index, productData] of data.entries()) {
-        if(index > 10)
-            break;
         console.log(color.BgCyan, "index: ", index, color.Reset);
         productData.image = await getImageBase64(productData.image);
         await uploadProductToDB(productData);
@@ -341,29 +339,34 @@ async function createCategories() {
     const data = [
         {
             name: "Accessories",
-            image: "https://ik.imagekit.io/ncsik7xqy/categories/Accessories.jpg?updatedAt=1719959352513"
+            image: "https://ik.imagekit.io/ncsik7xqy/categories/Accessories.jpg?updatedAt=1719959352513",
+            remote_id: "66847f3837b244ef548767e1"
         },
         {
             name: "candles",
-            image: "https://ik.imagekit.io/ncsik7xqy/categories/Accessories.jpg?updatedAt=1719959352513"
+            image: "https://ik.imagekit.io/ncsik7xqy/categories/Accessories.jpg?updatedAt=1719959352513",
+            remote_id: "66847f3837b244ef548767e1"
         },
         {
             name: "textiles",
-            image: "https://ik.imagekit.io/ncsik7xqy/categories/Accessories.jpg?updatedAt=1719959352513"
+            image: "https://ik.imagekit.io/ncsik7xqy/categories/Accessories.jpg?updatedAt=1719959352513",
+            remote_id: "66847f3837b244ef548767e1"
         },
         {
             name: "pottery and ceramic",
-            image: "https://ik.imagekit.io/ncsik7xqy/categories/Potary%20and%20ceramic.jpg?updatedAt=1719959348411"
+            image: "https://ik.imagekit.io/ncsik7xqy/categories/Potary%20and%20ceramic.jpg?updatedAt=1719959348411",
+            remote_id: "66847f3437b244ef5487590a",
         },
         {
             name: "leather",
-            image: "https://ik.imagekit.io/ncsik7xqy/categories/Accessories.jpg?updatedAt=1719959352513"
+            image: "https://ik.imagekit.io/ncsik7xqy/categories/Accessories.jpg?updatedAt=1719959352513",
+            remote_id: "66847f3837b244ef548767e1"
         }
     ]
     for(const category of data) {
         try {
             console.log(color.FgBlue, "Creating image for category", color.Reset)
-            const image = await Image.create({url: category.image});
+            const image = await Image.create({url: category.image, remote_id: category.remote_id});
             console.log(color.FgGreen, "Image created successfully", color.Reset);
             try {
                 console.log(color.FgBlue, "Creating category", color.Reset);

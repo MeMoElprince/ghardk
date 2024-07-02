@@ -16,7 +16,7 @@ const imageKitConfig = new imageKit({
     urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT
 });
 
-const vendorIds = [1, 2, 3, 4]
+const vendorIds = [1, 2, 3, 4, 5]
 
 let data = fs.readFileSync(path.join(__dirname, 'data.json'), 'utf8');
 data = JSON.parse(data);
@@ -26,6 +26,7 @@ data = Object.keys(data).map(key => {
     data[key].quantity *= 1;
     data[key].price = parseFloat(data[key].price.replace(',', ''));
     data[key].category_id *= 1;
+    data[key].image = data[key].image.replace('//', 'https://');
     if(data[key].description.length > 250)
     {
         data[key].description = data[key].description.slice(0, 250) + '...';
@@ -159,10 +160,13 @@ async function getImageBase64(url) {
     }
 }
 
+async function start() {
+    for (const [index, productData] of data.entries()) {
+        console.log(color.BgCyan, "index: ", index, color.Reset);
+        productData.image = await getImageBase64(productData.image);
+        await uploadProductToDB(productData);
+        console.log(color.BgCyan, "Uploaded product to DB of index: ", index, color.Reset);
+    }
+}
 
-data.forEach(async (productData, index) => {
-    console.log(color.BgCyan, "index: ", index, color.Reset);
-    productData.image = await getImageBase64(productData.image);
-    await uploadProductToDB(productData);
-    console.log(color.BgCyan, "Uploaded product to DB of index: ", index, color.Reset);
-});
+start();

@@ -5,16 +5,22 @@ import random
 import pandas as pd
 import csv
 import json
+import os
 
-data=pd.read_csv("all datasets.csv")
+
+currentDirectory = os.getcwd()
+# join 2 path with a function 
+# currentDirectory = os.path.join(currentDirectory, 'public')
+currentDirectory += '/public/'
+data=pd.read_csv(currentDirectory + "all datasets.csv")
 data.head()
 
 category_id={
   "Accessories" : 1,
   "candles" : 2,
-  "textiles" : 4,
-  "pottery and ceramic" : 6,
-  "leather" : 8
+  "textiles" : 3,
+  "pottery and ceramic" : 4,
+  "leather" : 5
 }
 data['category_id'] = data['Category'].map(category_id)
 
@@ -28,8 +34,8 @@ for i in range(len(data)):
 data
 
 
-data.to_csv('modifiedfile.csv', index=False)
-modi=pd.read_csv('modifiedfile.csv')
+data.to_csv(currentDirectory + 'modifiedfile.csv', index=False)
+modi=pd.read_csv(currentDirectory + 'modifiedfile.csv')
 modi
 
 modi['vendor_id']="NAN"
@@ -43,7 +49,7 @@ modi["product_id"]=""
 for i in range(len(modi)):
   modi["product_id"][i]=i
 
-modi.to_csv('modifiedfile.csv', index=False)
+modi.to_csv(currentDirectory + 'modifiedfile.csv', index=False)
 
 def csv2json(csv_path,json_path):
     jsonData = {}
@@ -59,4 +65,4 @@ def csv2json(csv_path,json_path):
 csv_path=r'modifiedfile.csv'
 json_path=r'data.json'
 
-csv2json(csv_path,json_path)
+csv2json(currentDirectory + csv_path,currentDirectory+json_path)

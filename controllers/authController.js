@@ -48,7 +48,6 @@ exports.signUp = catchAsync(async (req, res, next) => {
     // hash the password automatically when create or save
     let local = true;
     let image, newImage;
-    console.log('here first');
     if(req.body.image)
     {
         console.log('tryingggg image');

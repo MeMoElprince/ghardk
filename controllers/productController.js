@@ -1234,6 +1234,7 @@ exports.searchByImage = catchAsync(async (req, res, next) => {
     } catch(err)
     {
         console.log("Error happened while searching by image: ", err.message);
+        return next(new AppError('Couldn\'t found Items', 500));
     }
     let data = [];
     for(let i = 0; i < result.ids.length; i++) {

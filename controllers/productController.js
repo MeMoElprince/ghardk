@@ -600,7 +600,7 @@ exports.createProductImages = catchAsync(async (req, res, next) => {
         return next(new AppError('Please upload an image', 400));
     }
     const images = req.body.images;
-    const imageUrls = [];
+    const productImages = [];
     for(let i = 0; i < images.length; i++) {
         const image = images[i];
         
@@ -609,7 +609,6 @@ exports.createProductImages = catchAsync(async (req, res, next) => {
             fileName: image.originalname,
             folder: `/productImages`
         });
-        imageUrls.push(imageKitResponse.url);
         const newImage = await Image.create({
             url: imageKitResponse.url,
             remote_id: imageKitResponse.fileId,
@@ -618,6 +617,11 @@ exports.createProductImages = catchAsync(async (req, res, next) => {
             product_item_id: productItem.id,
             image_id: newImage.id
         })
+        productImages.push({
+            product_image_id: productImage.id,
+            url: newImage.url,
+            remote_id: newImage.remote_id
+        });
         const imageBase64 = image.buffer.toString('base64');
         const itemId = productItem.id;
         const imageId = newImage.id;
@@ -646,7 +650,8 @@ exports.createProductImages = catchAsync(async (req, res, next) => {
     res.status(201).json({
         status: 'success',
         data: {
-            imageUrls
+            count: productImages.length,
+            productImages
         }
     });
 });

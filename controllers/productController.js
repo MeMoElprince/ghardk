@@ -758,10 +758,16 @@ exports.getSimilarProductsByText = catchAsync(async (req, res, next) => {
         productItem = productItem[0];
         const productImages = await db.query(
             `
-                SELECT images.url AS image_url , images.remote_id AS image_id, pi.id AS product_image_id
-                FROM product_images
-                JOIN images ON product_images.image_id = images.id
-                WHERE product_images.product_item_id = ${id}
+                SELECT 
+                    images.url AS image_url, 
+                    images.remote_id AS image_id, 
+                    pi.id AS product_image_id
+                FROM 
+                    product_images pi
+                JOIN 
+                    images ON pi.image_id = images.id
+                WHERE 
+                    pi.product_item_id = ${id}
             `
         );
         productItem.images = productImages[0];

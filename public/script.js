@@ -76,10 +76,10 @@ async function uploadProductToDB(productData) {
         }
         // upload image and create image schema
         // ....................................
+        let image;
         if(productData.image)
         {
             console.log(color.FgBlue, "Trying to create image for the product", color.Reset);
-            let image;
             let response;
             try {
                 console.log(color.FgBlue, "Trying to upload image to imageKit", color.Reset);
@@ -140,7 +140,7 @@ async function uploadProductToDB(productData) {
             }
         }
         
-        // Uploading Image To AI
+        // Uploading product To AI
         // ........................
         try {
             const myHeaders = new Headers();
@@ -157,15 +157,44 @@ async function uploadProductToDB(productData) {
                 body: raw,
                 redirect: "follow",
             };
-            console.log(color.FgBlue, "Uploading image to AI........", color.Reset);
+            console.log(color.FgBlue, "Uploading product to AI........", color.Reset);
             const response = await fetch(`${process.env.AI_URL}/item`, requestOptions);
             const result = await response.json();
-            console.log(color.FgGreen, "Image uploaded to AI successfully........", color.Reset);
+            console.log(color.FgGreen, "product uploaded to AI successfully........", color.Reset);
         } catch(err)
         {
-            console.log(color.FgRed, "Error while uploading image to AI........", color.Reset);
+            console.log(color.FgRed, "Error while uploading product to AI........", color.Reset);
             throw err;
         }
+
+        // Uploading product Image To AI
+
+        try {
+            const myHeaders = new Headers();
+            myHeaders.append("Content-Type", "application/json");
+            const aiData = {
+                item_id: `${productItem.id}`,
+                image_id: `${image.id}`,
+                image_base64: productData.image
+            };
+            const raw = JSON.stringify(aiData);
+            const requestOptions = {
+                method: "POST",
+                headers: myHeaders,
+                body: raw,
+                redirect: "follow",
+            };
+            console.log(color.FgBlue, "Uploading product Image to AI........", color.Reset);
+            const response = await fetch(`${process.env.AI_URL}/item/image`, requestOptions);
+            const result = await response.json();
+            console.log(color.FgGreen, "product Image uploaded to AI successfully........", color.Reset);
+
+        } catch(err)
+        {
+            console.log(color.FgRed, "Error while uploading product Image to AI........", color.Reset);
+            throw err;
+        }
+
     } catch (error) {
         console.log(color.FgMagenta, error.message, color.Reset);
     }
@@ -187,6 +216,8 @@ async function getImageBase64(url) {
 
 async function createProducts(data) {
     for (const [index, productData] of data.entries()) {
+        if(index > 50)
+            break;
         console.log(color.BgCyan, "index: ", index, color.Reset);
         productData.image = await getImageBase64(productData.image);
         await uploadProductToDB(productData);
@@ -314,6 +345,8 @@ async function createUser(userData) {
 
 async function creatVendors(data) {
     for (const [index, vendorData] of data.entries()) {
+        if(index > 10)
+            break;
         if(vendorData.role !== 'vendor')
             continue;
         console.log(color.BgCyan, "index: ", index, color.Reset);

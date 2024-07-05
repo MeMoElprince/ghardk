@@ -377,13 +377,13 @@ async function createCategories() {
         },
         {
             name: "candles",
-            image: "https://ik.imagekit.io/ncsik7xqy/categories/Accessories.jpg?updatedAt=1719959352513",
-            remote_id: "66847f3837b244ef548767e1"
+            image: "https://ik.imagekit.io/ncsik7xqy/categories/Candle.jpeg?updatedAt=1720213814228",
+            remote_id: "6688613537b244ef5499a748"
         },
         {
             name: "textiles",
-            image: "https://ik.imagekit.io/ncsik7xqy/categories/Accessories.jpg?updatedAt=1719959352513",
-            remote_id: "66847f3837b244ef548767e1"
+            image: "https://ik.imagekit.io/ncsik7xqy/categories/Textiles.jpeg?updatedAt=1720213798744",
+            remote_id: "6688612637b244ef5498c06b"
         },
         {
             name: "pottery and ceramic",
@@ -392,8 +392,8 @@ async function createCategories() {
         },
         {
             name: "leather",
-            image: "https://ik.imagekit.io/ncsik7xqy/categories/Accessories.jpg?updatedAt=1719959352513",
-            remote_id: "66847f3837b244ef548767e1"
+            image: "https://ik.imagekit.io/ncsik7xqy/categories/generate-an-image-showcasing-a-single-visually-stunning-handmade-macrame-item-the-macrame-piece-sh.jpeg?updatedAt=1720214014078",
+            remote_id: "668861fd37b244ef549c9b3b"
         }
     ]
     for(const category of data) {

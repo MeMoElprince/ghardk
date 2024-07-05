@@ -4,9 +4,6 @@ const catchAsync = require('../utils/catchAsync');
 const db = require('../config/database');
 
 
-
-
-
 exports.getMyNotifications = catchAsync(async (req, res, next) => {
     const { id } = req.user;
     const notifications = await Notification.findAll({ 
@@ -25,6 +22,7 @@ exports.getMyNotifications = catchAsync(async (req, res, next) => {
 
 
 
+
 exports.getNotification = catchAsync(async (req, res, next) => {
     const { id } = req.params;
     const notification = await Notification.findOne({ 
@@ -40,7 +38,7 @@ exports.getNotification = catchAsync(async (req, res, next) => {
         return next(new AppError('You are not authorized to view this notification', 403));
     }
 
-    
+
 
     res.status(200).json({
         status: 'success',
@@ -49,5 +47,3 @@ exports.getNotification = catchAsync(async (req, res, next) => {
         }
     }); 
 });
-
-

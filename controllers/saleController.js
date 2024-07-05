@@ -16,6 +16,7 @@ const Balance = require("../models/balanceModel");
 const Vendor = require("../models/vendorModel");
 const Review = require('../models/reviewModel');
 const db = require('../config/database');
+const color = require('../utils/colors');
 
 
 
@@ -689,14 +690,11 @@ exports.confirmSale = catchAsync(async (req, res, next) => {
   {
     return next(new AppError("Transaction is not success", 400));
   }
-  console.log('sale: ', sale);
-  console.log('transaction: ', transaction);
   sale.status = 'success';
   await sale.save();
 
   // add balance
   const balance = await Balance.findOne({ where: { vendor_id: sale.vendor_id } });
-  console.log({balance});
   // 5% commission
   let amount = sale.total_price * 1.0;
   amount = amount - amount * 0.05;
@@ -710,7 +708,15 @@ exports.confirmSale = catchAsync(async (req, res, next) => {
   
   for(let i = 0; i < saleItems.length; i++)
   {
-    console.log('saleItems[i]: ', saleItems[i]);
+    const review = await Review.findOne({ 
+      where: {
+        product_item_id: saleItems[i].product_item_id,
+        customer_id: sale.customer_id,
+      }
+    })
+    if(review)
+        continue;
+    console.log(color.FgBlue, "Creating Review...", color.Reset);
     await Review.create({
       product_item_id: saleItems[i].product_item_id,
       customer_id: sale.customer_id,

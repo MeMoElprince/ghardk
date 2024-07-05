@@ -14,6 +14,7 @@ const fetch = require('node-fetch');
 const db = require('../config/database');
 const ProductConfiguration = require('../models/productConfigurationModel');
 const Customer = require('../models/customerModel');
+const Review = require('../models/reviewModel');
 
 const imageKitConfig = new imageKit({
     publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
@@ -308,6 +309,7 @@ exports.getProductItem = catchAsync(async (req, res, next) => {
     productItem.images = productImages[0];
 
     productItem.isFavourite = false;
+    productItem.canReview = false;
     if(req.user)
     {
         let favourite = await db.query(
@@ -324,6 +326,26 @@ exports.getProductItem = catchAsync(async (req, res, next) => {
         );
         if(favourite[0].length > 0)
             productItem.isFavourite = true;
+        
+        const customer = await Customer.findOne({
+            where: {
+                user_id: req.user.id
+            }
+        });
+        if(customer)
+        {
+            const review = await Review.findOne({
+                where: {
+                    product_item_id: id,
+                    customer_id: customer.id
+                }
+            });
+            if(review)
+            {
+                productItem.canReview = true;
+            }
+        }
+        
     }
 
     let productConfigurations = await db.query(

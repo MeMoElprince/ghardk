@@ -6,7 +6,7 @@ const Customer = require('../models/customerModel');
 const db = require('../config/database');
 const Vendor = require('../models/vendorModel');
 const ProductItem = require('../models/productItemModel');
-
+const color = require('../utils/colors');
 // customer get this review 
 
 
@@ -104,15 +104,7 @@ exports.getMyReviews = catchAsync(async (req, res, next) => {
 
 exports.createReview = catchAsync(async (req, res, next) => {
     const data = filterObj(req.body, 'rating', 'comment');
-    const review = await Review.findOne({
-        where: {
-            id: req.params.id,
-            status: 'pending'
-        }
-    });
-    if(!review) {
-        return next(new AppError('Invalid review', 404));
-    }
+    // const customer 
     const customer = await Customer.findOne({
         where: {
             user_id: req.user.id
@@ -120,6 +112,18 @@ exports.createReview = catchAsync(async (req, res, next) => {
     })
     if(!customer) {
         return next(new AppError('You must be a customer to review a product', 401));
+    }
+    const review = await Review.findOne({
+        where: {
+            product_item_id: req.params.id,
+            customer_id: customer.id
+        }
+    });
+    if(!review) {
+        return next(new AppError('Invalid review', 404));
+    }
+    if(review.status !== 'pending') {
+        return next(new AppError('You have already reviewed this product', 400));
     }
     if(review.customer_id !== customer.id) {
         return next(new AppError('You are not allowed to review this product', 401));
@@ -138,7 +142,7 @@ exports.createReview = catchAsync(async (req, res, next) => {
     await review.save();
     
     // update rating and rating_count in product item
-    const productItem = await Product.findOne({
+    const productItem = await ProductItem.findOne({
         where: {
             id: review.product_item_id
         }
@@ -154,6 +158,7 @@ exports.createReview = catchAsync(async (req, res, next) => {
             id: productItem.vendor_id
         }
     });
+
     if(!vendor) {
         return next(new AppError('Vendor not found', 404));
     }

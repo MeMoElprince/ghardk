@@ -258,7 +258,7 @@ exports.protect = catchAsync(async (req, res, next) => {
     if(req.headers.authorization && req.headers.authorization.startsWith('Bearer'))
         token = req.headers.authorization.split(' ')[1];
     if(!token)
-        return next(new AppError('No token found!!', 401));
+        return next(new AppError('You need to login!!', 401));
     // verification token
     const decoded = await tokenFactory.verify(token);
     // check if user still exists

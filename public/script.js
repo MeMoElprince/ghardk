@@ -216,8 +216,6 @@ async function getImageBase64(url) {
 
 async function createProducts(data) {
     for (const [index, productData] of data.entries()) {
-        if(index > 50)
-            break;
         console.log(color.BgCyan, "index: ", index, color.Reset);
         productData.image = await getImageBase64(productData.image);
         await uploadProductToDB(productData);
@@ -345,8 +343,6 @@ async function createUser(userData) {
 
 async function creatVendors(data) {
     for (const [index, vendorData] of data.entries()) {
-        if(index > 10)
-            break;
         if(vendorData.role !== 'vendor')
             continue;
         console.log(color.BgCyan, "index: ", index, color.Reset);

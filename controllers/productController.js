@@ -1098,7 +1098,7 @@ async function getProductItem(id, req)
 exports.getForYouProducts = catchAsync(async (req ,res, next) => {
     let limit = req.query.limit || 50;
     limit = Math.min(limit, 50);
-    console.log(color.FgBlue, 'Limit: ', limit, color.Reset);
+    console.log(color.FgBlue, 'ForYou Route', color.Reset);
     let ids = [];
 
     if(req.user)
@@ -1109,7 +1109,6 @@ exports.getForYouProducts = catchAsync(async (req ,res, next) => {
             console.log(err.message);
         }   
     }
-    console.log(color.FgBlue, 'ids: ', ids, color.Reset);
     let productItems = [];
     let shouldGetData = false;
     try{
@@ -1144,6 +1143,10 @@ exports.getForYouProducts = catchAsync(async (req ,res, next) => {
             let productItem = await getProductItem(id, req);
             if(productItem)
                 productItems.push(productItem);
+        }
+        if(productItems.length === 0)
+        {
+            throw new AppError("No data received", 404);
         }
     } catch (err) {
         console.log("Error happened while getting for you products from AI", err.message);

@@ -1,5 +1,5 @@
 const express = require('express');
-const router = express.Router();
+const router = express.Router({mergeParams: true});
 
 const productConfigurationController = require('../controllers/productConfigurationController');
 
@@ -9,6 +9,12 @@ const productConfigurationController = require('../controllers/productConfigurat
 
 
 // user wants to get the product configuration
+
+// 
+
+
+router.route('/')
+        .get(productConfigurationController.getAllConfigurationsByProduct);
 
 router.route('/')
         .get(productConfigurationController.getAllProductConfigurations)

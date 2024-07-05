@@ -18,19 +18,23 @@ const filterObj = (obj, ...allowedFields) => {
 
 exports.addProductToFavourite = catchAsync(async (req, res, next) => {
     const data = filterObj(req.body, 'product_item_id');
+    
     data.user_id = req.user.id;
+    
     const customer = await Customer.findOne({
         where: {
-            user_id: req.user.id
+            user_id: req.user.id    
         }
     });
+    if(!customer)
+        return next(new AppError("Customer not found", 404));
     data.customer_id = customer.id;
     const favouriteProductTest = await FavouriteProduct.findOne({
         where: {
             customer_id: customer.id,
             product_item_id: data.product_item_id
         }
-    })
+    });
     // we can replace the below if condition with setting 2 columns as a primary key in db
     if(favouriteProductTest)
         return next(new AppError('Product already in favourite', 400));

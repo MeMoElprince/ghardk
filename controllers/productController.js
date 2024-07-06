@@ -337,7 +337,8 @@ exports.getProductItem = catchAsync(async (req, res, next) => {
             const review = await Review.findOne({
                 where: {
                     product_item_id: id,
-                    customer_id: customer.id
+                    customer_id: customer.id,
+status: 'pending'
                 }
             });
             if(review)

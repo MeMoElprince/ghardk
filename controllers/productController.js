@@ -338,7 +338,7 @@ exports.getProductItem = catchAsync(async (req, res, next) => {
                 where: {
                     product_item_id: id,
                     customer_id: customer.id,
-status: 'pending'
+                    status: 'pending'
                 }
             });
             if(review)
